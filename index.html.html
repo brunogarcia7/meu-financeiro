@@ -8,15 +8,9 @@
     <style>
         :root { --primary: #002060; --danger: #ff4d4d; --success: #28a745; --warning: #ffd54f; --bg: #f0f4f8; --card-bg: #ffffff; --receita-bg: #f1f5f9; --negative-bg: #b91c1c; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #334155; }
-        
-        /* TELA DE LOGIN */
         #tela-senha { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; }
         .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 80%; max-width: 320px; text-align: center; color: #334155; }
-        
-        /* APP OCULTO POR PADRÃO */
         #app-principal { display: none; }
-
-        /* ESTILOS DO SISTEMA */
         .top-header { background: var(--primary); color: white; padding: 25px 20px; border-radius: 0 0 25px 25px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 10px 25px rgba(0,32,96,0.2); }
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 1000px; margin: 0 auto; text-align: center; }
         .stat-item h2 { margin: 5px 0 0; font-size: 1.1rem; white-space: nowrap; }
@@ -52,7 +46,13 @@
         <div class="top-header" id="main-header">
             <div style="text-align:center; margin-bottom:12px;">
                 <select id="select-ano" onchange="carregarDadosNuvem()" style="background:rgba(255,255,255,0.1); color:white; border:none; padding:6px; border-radius:8px;">
-                    <option value="2025">2025</option><option value="2026" selected>2026</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                    <option value="2029">2029</option>
+                    <option value="2030">2030</option>
                 </select>
             </div>
             <div class="stats-grid">
@@ -90,7 +90,6 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MTUzNTAsImV4cCI6MjA4Mzk5MTM1MH0.uYhuP6BA6qUQIDJeiZArbR5teOQB8PFYTsyYDXkZvao'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // FUNÇÃO DE SENHA
         function verificarSenha() {
             const senhaDigitada = document.getElementById('input-senha').value;
             if (senhaDigitada === 'Bgp1705') {
@@ -102,7 +101,6 @@
             }
         }
 
-        // Permitir dar "Enter" na senha
         document.getElementById('input-senha').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') { verificarSenha(); }
         });
