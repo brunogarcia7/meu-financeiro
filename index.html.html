@@ -65,9 +65,8 @@
     </div>
 
     <script>
-        // SUBSTITUA OS DADOS ABAIXO PELOS SEUS DO SUPABASE
         const SUPABASE_URL = 'https://tpblbledkcafbjndruha.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_9KvVV2MI7cQtmLSR7Pq8aw_oIi-Rt5K';
+        const SUPABASE_KEY = 'sb_publishable_9kvVV2MI7CqtmLSR7Pq8aw_oIi-Rt5K';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let mesAtual = new Date().getMonth();
@@ -93,14 +92,14 @@
                 dados.push({ categoria: c.querySelector('h3').innerText.replace(/[💰💳]\s*/, ""), itens });
             });
             const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
-            if (error) alert("Erro: " + error.message); else alert("Sincronizado!");
+            if (error) alert("Erro ao salvar: " + error.message); else alert("Sincronizado!");
         }
 
         async function carregarDadosNuvem() {
             const ano = document.getElementById('select-ano').value;
             const { data } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
             document.getElementById('container-geral').innerHTML = "";
-            if (data) data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
+            if (data && data.dados) data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
             else criarCard("RECEITAS", [{desc: "Salário Bruno", val: "0,00", pago: false}]);
             document.querySelectorAll('.month-btn').forEach((b, i) => b.classList.toggle('active', i === mesAtual));
             calcular();
@@ -159,5 +158,3 @@
     </script>
 </body>
 </html>
-
-
