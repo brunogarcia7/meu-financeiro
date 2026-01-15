@@ -18,4 +18,143 @@
         .month-btn.active { background: var(--primary); color: white; }
         .blocks-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; padding: 0 20px 20px; }
         .card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 10px; }
-        .card.receita-card { background: var(--receita-bg); border-
+        .card.receita-card { background: var(--receita-bg); border-left: 6px solid var(--success); }
+        .card h3 { margin: 0 0 15px 0; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; gap: 10px; }
+        .row.pago { background: #e8f5e9; border-radius: 10px; padding: 8px; }
+        .row.pago .desc { text-decoration: line-through; color: #166534; opacity: 0.7; }
+        .left { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; }
+        .check-pagar { width: 20px; height: 20px; cursor: pointer; accent-color: var(--success); }
+        .desc { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .val-box { width: 85px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: right; font-weight: 700; font-family: monospace; background: #ffffff; font-size: 0.85rem; }
+        .btn-del { background: #fee2e2; color: #ef4444; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .add-panel { background: white; margin: 20px; padding: 25px; border-radius: 20px; border: 2px dashed var(--primary); }
+        input.full, select.full { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px; }
+        .btn-main { padding: 15px; border-radius: 12px; border: none; width: 100%; font-weight: 700; cursor: pointer; font-size: 1rem; color: white; transition: 0.2s; }
+    </style>
+</head>
+<body>
+    <div class="top-header" id="main-header">
+        <div style="text-align:center; margin-bottom:12px;">
+            <select id="select-ano" onchange="carregarDadosNuvem()" style="background:rgba(255,255,255,0.1); color:white; border:none; border-radius:8px; padding:6px 12px; font-weight:bold; cursor:pointer;">
+                <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+            </select>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-item"><small>Saldo Total</small><h2 id="res-saldo">R$ 0,00</h2></div>
+            <div class="stat-item"><small>Total Pago</small><h2 id="res-pago" style="color: #a5d6a7;">R$ 0,00</h2></div>
+            <div class="stat-item"><small>Falta Pagar</small><h2 id="res-falta" style="color: var(--warning);">R$ 0,00</h2></div>
+        </div>
+    </div>
+    <div class="month-scroller" id="mes-barra"></div>
+    <div class="blocks-container" id="container-geral"></div>
+    <div class="add-panel">
+        <button class="btn-main" style="background:var(--primary); margin-bottom: 20px;" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR TUDO</button>
+        <h3 style="margin-top:0; color: var(--primary)">Novo Lançamento</h3>
+        <select id="sel-categoria" class="full" onchange="toggleNovaCat()">
+            <option value="RECEITAS">RECEITAS</option>
+            <option value="DESPESAS FIXAS">DESPESAS FIXAS</option>
+            <option value="CARTÃO DE CRÉDITO">CARTÃO DE CRÉDITO</option>
+            <option value="VARIADAS">VARIADAS</option>
+            <option value="NOVA_CAT">+ Criar Novo Bloco</option>
+        </select>
+        <input type="text" id="input-nova-cat" class="full" style="display:none" placeholder="Nome do novo bloco">
+        <input type="text" id="novo-nome" class="full" placeholder="Descrição">
+        <input type="text" id="novo-valor" class="full" placeholder="R$ 0,00" oninput="formatarMoeda(this)">
+        <button class="btn-main" style="background:var(--success)" onclick="adicionar()">ADICIONAR À LISTA</button>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://tpblbledkcafbjndruha.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDYwNzUsImV4cCI6MjA1MjUyMjA3NX0.pI-z6mUj9-M9_M_M9_M9_M9_M9_M9_M9_M9_M9_M9_M'; 
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let mesAtual = new Date().getMonth();
+        const nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+        const barra = document.getElementById('mes-barra');
+        nomesMeses.forEach((nome, i) => {
+            const btn = document.createElement('button');
+            btn.className = `month-btn ${i === mesAtual ? 'active' : ''}`;
+            btn.innerText = nome;
+            btn.onclick = () => { mesAtual = i; carregarDadosNuvem(); };
+            barra.appendChild(btn);
+        });
+
+        async function salvarNaNuvem() {
+            const ano = document.getElementById('select-ano').value;
+            const dados = [];
+            document.querySelectorAll('.card').forEach(c => {
+                const itens = [];
+                c.querySelectorAll('.row').forEach(r => {
+                    itens.push({ desc: r.querySelector('.desc').innerText, val: r.querySelector('.val-box').value, pago: r.querySelector('.check-pagar').checked });
+                });
+                dados.push({ categoria: c.querySelector('h3').innerText.replace(/[💰💳]\s*/, ""), itens });
+            });
+            const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
+            if (error) alert("Erro ao salvar: " + error.message); else alert("Sincronizado com a Nuvem!");
+        }
+
+        async function carregarDadosNuvem() {
+            const ano = document.getElementById('select-ano').value;
+            const { data, error } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
+            document.getElementById('container-geral').innerHTML = "";
+            if (data && data.dados) data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
+            else criarCard("RECEITAS", [{desc: "Salário Bruno", val: "0,00", pago: false}]);
+            document.querySelectorAll('.month-btn').forEach((b, i) => b.classList.toggle('active', i === mesAtual));
+            calcular();
+        }
+
+        function criarCard(titulo, itens) {
+            const card = document.createElement('div');
+            const isRec = titulo.toUpperCase().includes('RECEITA');
+            card.className = `card ${isRec ? 'receita-card' : ''}`;
+            card.innerHTML = `<h3>${isRec ? '💰' : '💳'} ${titulo}</h3>`;
+            itens.forEach(item => {
+                const row = document.createElement('div');
+                row.className = `row ${item.pago ? 'pago' : ''}`;
+                row.innerHTML = `<div class="left"><input type="checkbox" class="check-pagar" ${item.pago ? 'checked' : ''} onchange="marcarPago(this)"><span class="desc">${item.desc}</span></div><div class="right" style="display:flex; align-items:center; gap:8px;"><input type="text" class="val-box ${isRec ? 'v-rec' : 'v-desp'}" value="${item.val}" oninput="formatarMoeda(this)"><button class="btn-del" onclick="remover(this)">×</button></div>`;
+                card.appendChild(row);
+            });
+            document.getElementById('container-geral').appendChild(card);
+        }
+
+        function formatarMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v/100).toLocaleString('pt-BR', {minimumFractionDigits: 2}); i.value = v === "0,00" ? "" : v; calcular(); }
+        function stringParaNumero(s) { return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0; }
+        function marcarPago(cb) { cb.closest('.row').classList.toggle('pago', cb.checked); calcular(); }
+        function remover(b) { if(confirm("Apagar?")) { b.closest('.row').remove(); calcular(); } }
+        function toggleNovaCat() { document.getElementById('input-nova-cat').style.display = document.getElementById('sel-categoria').value === "NOVA_CAT" ? "block" : "none"; }
+
+        function calcular() {
+            let tr=0, tp=0, tf=0;
+            document.querySelectorAll('.v-rec').forEach(r => tr += stringParaNumero(r.value));
+            document.querySelectorAll('.v-desp').forEach(d => {
+                let v = stringParaNumero(d.value);
+                if(d.closest('.row').querySelector('.check-pagar').checked) tp += v; else tf += v;
+            });
+            let saldo = tr - tp - tf;
+            document.getElementById('res-saldo').innerText = "R$ " + saldo.toLocaleString('pt-BR', {minimumFractionDigits:2});
+            document.getElementById('res-pago').innerText = "R$ " + tp.toLocaleString('pt-BR', {minimumFractionDigits:2});
+            document.getElementById('res-falta').innerText = "R$ " + tf.toLocaleString('pt-BR', {minimumFractionDigits:2});
+            document.getElementById('main-header').classList.toggle('is-negative', saldo < 0);
+        }
+
+        function adicionar() {
+            const sel = document.getElementById('sel-categoria');
+            let cat = sel.value === "NOVA_CAT" ? document.getElementById('input-nova-cat').value.toUpperCase() : sel.value;
+            const nome = document.getElementById('novo-nome').value, valor = document.getElementById('novo-valor').value;
+            if(!cat || !nome || !valor) return;
+            let card = Array.from(document.querySelectorAll('.card')).find(c => c.querySelector('h3').innerText.includes(cat));
+            if(!card) criarCard(cat, [{desc: nome, val: valor, pago: false}]);
+            else {
+                const r = document.createElement('div'); r.className = 'row';
+                r.innerHTML = `<div class="left"><input type="checkbox" class="check-pagar" onchange="marcarPago(this)"><span class="desc">${nome}</span></div><div class="right" style="display:flex; align-items:center; gap:8px;"><input type="text" class="val-box ${cat.includes('RECEITA') ? 'v-rec' : 'v-desp'}" value="${valor}" oninput="formatarMoeda(this)"><button class="btn-del" onclick="remover(this)">×</button></div>`;
+                card.appendChild(r);
+            }
+            calcular();
+        }
+
+        window.onload = carregarDadosNuvem;
+    </script>
+</body>
+</html>
