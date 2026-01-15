@@ -20,6 +20,7 @@
         .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; gap: 10px; }
         .row.pago { background: #e8f5e9; border-radius: 10px; padding: 8px; opacity: 0.7; }
         .val-box { width: 85px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: right; font-weight: 700; }
+        .btn-copiar { background: #64748b; color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-bottom: 15px; text-transform: uppercase; font-size: 0.8rem; }
         .add-panel { background: white; margin: 20px; padding: 25px; border-radius: 20px; border: 2px dashed var(--primary); }
         .full { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-sizing: border-box; }
         .btn-main { padding: 15px; border-radius: 12px; border: none; width: 100%; font-weight: 700; cursor: pointer; color: white; }
@@ -38,17 +39,24 @@
             <div class="stat-item"><small>FALTA</small><h2 id="res-falta" style="color: var(--warning);">R$ 0,00</h2></div>
         </div>
     </div>
+
     <div class="month-scroller" id="mes-barra"></div>
+
+    <div style="padding: 0 20px;">
+        <button class="btn-copiar" onclick="copiarMesAnterior()">📋 Copiar dados do mês anterior</button>
+    </div>
+
     <div id="container-geral" class="blocks-container"></div>
+
     <div class="add-panel">
-        <button class="btn-main" style="background:var(--primary); margin-bottom:20px" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR</button>
+        <button class="btn-main" style="background:var(--primary); margin-bottom:20px" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR TUDO</button>
         <select id="sel-categoria" class="full">
             <option value="RECEITAS">RECEITAS</option>
             <option value="DESPESAS">DESPESAS</option>
         </select>
         <input type="text" id="novo-nome" class="full" placeholder="Descrição">
         <input type="text" id="novo-valor" class="full" placeholder="R$ 0,00" oninput="formatarMoeda(this)">
-        <button class="btn-main" style="background:var(--success)" onclick="adicionar()">ADICIONAR</button>
+        <button class="btn-main" style="background:var(--success)" onclick="adicionar()">ADICIONAR À LISTA</button>
     </div>
 
     <script>
@@ -71,6 +79,42 @@
             });
         }
 
+        async function carregarDadosNuvem() {
+            initBarra();
+            const ano = document.getElementById('select-ano').value;
+            const { data } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
+            document.getElementById('container-geral').innerHTML = "";
+            if (data && data.dados) {
+                data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
+            } else {
+                criarCard("RECEITAS", []); criarCard("DESPESAS", []);
+            }
+            calcular();
+        }
+
+        async function copiarMesAnterior() {
+            const ano = document.getElementById('select-ano').value;
+            let mesBusca = mesAtual === 0 ? 11 : mesAtual - 1;
+            let anoBusca = mesAtual === 0 ? (parseInt(ano)-1).toString() : ano;
+
+            const { data } = await _supabase.from('registros').select('dados').eq('ano', anoBusca).eq('mes', mesBusca).maybeSingle();
+            
+            if (data && data.dados) {
+                if(confirm(`Copiar dados de ${nomesMeses[mesBusca]}? Isso vai substituir o que está na tela.`)) {
+                    document.getElementById('container-geral').innerHTML = "";
+                    // Copia os itens mas coloca todos como NÃO PAGOS (false)
+                    data.dados.forEach(cat => {
+                        let itensResetados = cat.itens.map(it => ({...it, pago: false}));
+                        criarCard(cat.categoria, itensResetados);
+                    });
+                    calcular();
+                    alert("Dados copiados! Não esqueça de clicar em SALVAR.");
+                }
+            } else {
+                alert("Não encontramos dados no mês anterior para copiar.");
+            }
+        }
+
         async function salvarNaNuvem() {
             const ano = document.getElementById('select-ano').value;
             const dados = [];
@@ -82,20 +126,7 @@
                 dados.push({ categoria: c.querySelector('h3').innerText, itens });
             });
             const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
-            if (error) alert("Erro ao salvar: " + error.message); else alert("Sincronizado com Sucesso!");
-        }
-
-        async function carregarDadosNuvem() {
-            initBarra();
-            const ano = document.getElementById('select-ano').value;
-            const { data, error } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
-            document.getElementById('container-geral').innerHTML = "";
-            if (data && data.dados) {
-                data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
-            } else {
-                criarCard("RECEITAS", []); criarCard("DESPESAS", []);
-            }
-            calcular();
+            if (error) alert("Erro: " + error.message); else alert("Sincronizado!");
         }
 
         function criarCard(tit, itens) {
@@ -105,7 +136,7 @@
             itens.forEach(item => {
                 const row = document.createElement('div');
                 row.className = `row ${item.pago ? 'pago' : ''}`;
-                row.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" ${item.pago ? 'checked' : ''} onchange="marcarPago(this)"><span class="desc">${item.desc}</span></div><input type="text" class="val-box" value="${item.val}" oninput="formatarMoeda(this)">`;
+                row.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" ${item.pago ? 'checked' : ''} onchange="marcarPago(this)"><span class="desc">${item.desc}</span></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${item.val}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;">×</button></div>`;
                 card.appendChild(row);
             });
             document.getElementById('container-geral').appendChild(card);
@@ -136,10 +167,11 @@
             if(!card) criarCard(cat, [{desc: nome, val: valor, pago: false}]);
             else {
                 const r = document.createElement('div'); r.className = 'row';
-                r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" onchange="marcarPago(this)"><span class="desc">${nome}</span></div><input type="text" class="val-box" value="${valor}" oninput="formatarMoeda(this)">`;
+                r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" onchange="marcarPago(this)"><span class="desc">${nome}</span></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${valor}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;">×</button></div>`;
                 card.appendChild(r);
             }
             calcular();
+            document.getElementById('novo-nome').value = ""; document.getElementById('novo-valor').value = "";
         }
         window.onload = carregarDadosNuvem;
     </script>
