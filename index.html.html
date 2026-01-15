@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financeiro Bruno - Protegido</title>
+    <title>Financeiro Bruno - v32.0</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #002060; --danger: #ff4d4d; --success: #28a745; --warning: #ffd54f; --bg: #f0f4f8; --card-bg: #ffffff; --receita-bg: #f1f5f9; --negative-bg: #b91c1c; }
@@ -18,12 +18,13 @@
         .month-btn { background: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; color: #64748b; min-width: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .month-btn.active { background: var(--primary); color: white; }
         .blocks-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; padding: 0 20px 20px; }
-        .card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 10px; }
+        .card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 10px; display: flex; flex-direction: column; }
         .card.receita-card { background: var(--receita-bg); border-left: 6px solid var(--success); }
         .editable-title { border: none; background: transparent; font-weight: bold; color: var(--primary); font-size: 0.85rem; text-transform: uppercase; width: 80%; cursor: text; padding: 5px; border-radius: 5px; }
         .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; gap: 10px; }
         .row.pago { background: #e8f5e9; border-radius: 10px; padding: 8px; opacity: 0.7; }
         .val-box { width: 85px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: right; font-weight: 700; }
+        .subtotal-bloco { margin-top: 15px; padding-top: 10px; border-top: 2px dashed #e2e8f0; text-align: right; font-size: 0.9rem; font-weight: 800; color: var(--primary); }
         .btn-copiar { background: #64748b; color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-bottom: 15px; text-transform: uppercase; font-size: 0.8rem; }
         .add-panel { background: white; margin: 20px; padding: 25px; border-radius: 20px; border: 2px dashed var(--primary); }
         .full { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-sizing: border-box; }
@@ -46,13 +47,7 @@
         <div class="top-header" id="main-header">
             <div style="text-align:center; margin-bottom:12px;">
                 <select id="select-ano" onchange="carregarDadosNuvem()" style="background:rgba(255,255,255,0.1); color:white; border:none; padding:6px; border-radius:8px;">
-                    <option value="2024">2024</option>
-                    <option value="2025">2025</option>
-                    <option value="2026" selected>2026</option>
-                    <option value="2027">2027</option>
-                    <option value="2028">2028</option>
-                    <option value="2029">2029</option>
-                    <option value="2030">2030</option>
+                    <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option>
                 </select>
             </div>
             <div class="stats-grid">
@@ -63,20 +58,14 @@
         </div>
 
         <div class="month-scroller" id="mes-barra"></div>
-
-        <div style="padding: 0 20px;">
-            <button class="btn-copiar" onclick="copiarMesAnterior()">📋 Copiar dados do mês anterior</button>
-        </div>
-
+        <div style="padding: 0 20px;"><button class="btn-copiar" onclick="copiarMesAnterior()">📋 Copiar dados do mês anterior</button></div>
         <div id="container-geral" class="blocks-container"></div>
 
         <div class="add-panel">
             <button class="btn-main" style="background:var(--primary); margin-bottom:20px" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR TUDO</button>
             <h3 style="margin-top:0; color: var(--primary)">Novo Lançamento</h3>
             <select id="sel-categoria" class="full" onchange="toggleNovaCat()">
-                <option value="RECEITAS">RECEITAS</option>
-                <option value="DESPESAS">DESPESAS</option>
-                <option value="NOVA_CAT">+ Criar Novo Bloco</option>
+                <option value="RECEITAS">RECEITAS</option><option value="DESPESAS">DESPESAS</option><option value="NOVA_CAT">+ Criar Novo Bloco</option>
             </select>
             <input type="text" id="input-nova-cat" class="full" style="display:none" placeholder="Nome do novo bloco">
             <input type="text" id="novo-nome" class="full" placeholder="Descrição">
@@ -91,19 +80,14 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function verificarSenha() {
-            const senhaDigitada = document.getElementById('input-senha').value;
-            if (senhaDigitada === 'Bgp1705') {
+            if (document.getElementById('input-senha').value === 'Bgp1705') {
                 document.getElementById('tela-senha').style.display = 'none';
                 document.getElementById('app-principal').style.display = 'block';
                 carregarDadosNuvem();
-            } else {
-                document.getElementById('erro-senha').style.display = 'block';
-            }
+            } else { document.getElementById('erro-senha').style.display = 'block'; }
         }
 
-        document.getElementById('input-senha').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') { verificarSenha(); }
-        });
+        document.getElementById('input-senha').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificarSenha(); });
 
         let mesAtual = new Date().getMonth();
         const nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
@@ -125,11 +109,8 @@
             const ano = document.getElementById('select-ano').value;
             const { data } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
             document.getElementById('container-geral').innerHTML = "";
-            if (data && data.dados) {
-                data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
-            } else {
-                criarCard("RECEITAS", []); criarCard("DESPESAS", []);
-            }
+            if (data && data.dados) { data.dados.forEach(cat => criarCard(cat.categoria, cat.itens)); }
+            else { criarCard("RECEITAS", []); criarCard("DESPESAS", []); }
             calcular();
         }
 
@@ -155,58 +136,64 @@
                 <span class="icon">${isRec ? '💰' : '💸'}</span>
                 <input type="text" class="editable-title" value="${tit}" oninput="atualizarIcone(this)">
                 <button onclick="if(confirm('Apagar bloco?')) {this.closest('.card').remove();calcular();}" style="border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:0.7rem;margin-left:auto;">🗑️</button>
-            </h3>`;
+            </h3>
+            <div class="rows-container"></div>
+            <div class="subtotal-bloco">Total: R$ 0,00</div>`;
+            
+            const rowsCont = card.querySelector('.rows-container');
             itens.forEach(item => {
                 const row = document.createElement('div');
                 row.className = `row ${item.pago ? 'pago' : ''}`;
                 row.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" ${item.pago ? 'checked' : ''} onchange="marcarPago(this)"><span class="desc">${item.desc}</span></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${item.val}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;">×</button></div>`;
-                card.appendChild(row);
+                rowsCont.appendChild(row);
             });
             document.getElementById('container-geral').appendChild(card);
         }
 
-        async function copiarMesAnterior() {
-            const ano = document.getElementById('select-ano').value;
-            let mesBusca = mesAtual === 0 ? 11 : mesAtual - 1;
-            let anoBusca = mesAtual === 0 ? (parseInt(ano)-1).toString() : ano;
-            const { data } = await _supabase.from('registros').select('dados').eq('ano', anoBusca).eq('mes', mesBusca).maybeSingle();
-            if (data && data.dados) {
-                if(confirm(`Copiar dados de ${nomesMeses[mesBusca]}?`)) {
-                    document.getElementById('container-geral').innerHTML = "";
-                    data.dados.forEach(cat => {
-                        let itensResetados = cat.itens.map(it => ({...it, pago: false}));
-                        criarCard(cat.categoria, itensResetados);
-                    });
-                    calcular();
-                    alert("Copiado! Clique em SALVAR para confirmar.");
-                }
-            } else { alert("Sem dados anteriores."); }
-        }
-
-        function atualizarIcone(input) {
-            const iconSpan = input.previousElementSibling;
-            const isRec = input.value.toUpperCase().includes('RECEITA');
-            iconSpan.innerText = isRec ? '💰' : '💸';
-            input.closest('.card').classList.toggle('receita-card', isRec);
-        }
-
-        function toggleNovaCat() { document.getElementById('input-nova-cat').style.display = document.getElementById('sel-categoria').value === "NOVA_CAT" ? "block" : "none"; }
         function formatarMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v/100).toLocaleString('pt-BR', {minimumFractionDigits: 2}); i.value = v === "0,00" ? "" : v; calcular(); }
         function marcarPago(cb) { cb.closest('.row').classList.toggle('pago', cb.checked); calcular(); }
         
         function calcular() {
             let tr=0, tp=0, tf=0;
-            document.querySelectorAll('.val-box').forEach(vBox => {
-                const val = parseFloat(vBox.value.replace(/\./g, '').replace(',', '.')) || 0;
-                const isRec = vBox.closest('.card').classList.contains('receita-card');
-                if (isRec) tr += val;
-                else if (vBox.closest('.row').querySelector('.check-pagar').checked) tp += val;
-                else tf += val;
+            document.querySelectorAll('.card').forEach(card => {
+                let totalBloco = 0;
+                card.querySelectorAll('.val-box').forEach(vBox => {
+                    const val = parseFloat(vBox.value.replace(/\./g, '').replace(',', '.')) || 0;
+                    totalBloco += val;
+                    const isRec = card.classList.contains('receita-card');
+                    if (isRec) tr += val;
+                    else if (vBox.closest('.row').querySelector('.check-pagar').checked) tp += val;
+                    else tf += val;
+                });
+                card.querySelector('.subtotal-bloco').innerText = "Total: R$ " + totalBloco.toLocaleString('pt-BR', {minimumFractionDigits:2});
             });
             document.getElementById('res-saldo').innerText = "R$ " + (tr - tp - tf).toLocaleString('pt-BR', {minimumFractionDigits:2});
             document.getElementById('res-pago').innerText = "R$ " + tp.toLocaleString('pt-BR', {minimumFractionDigits:2});
             document.getElementById('res-falta').innerText = "R$ " + tf.toLocaleString('pt-BR', {minimumFractionDigits:2});
         }
+
+        async function copiarMesAnterior() {
+            const ano = document.getElementById('select-ano').value;
+            let mB = mesAtual === 0 ? 11 : mesAtual - 1;
+            let aB = mesAtual === 0 ? (parseInt(ano)-1).toString() : ano;
+            const { data } = await _supabase.from('registros').select('dados').eq('ano', aB).eq('mes', mB).maybeSingle();
+            if (data && data.dados) {
+                if(confirm(`Copiar dados de ${nomesMeses[mB]}?`)) {
+                    document.getElementById('container-geral').innerHTML = "";
+                    data.dados.forEach(cat => { criarCard(cat.categoria, cat.itens.map(it => ({...it, pago: false}))); });
+                    calcular();
+                }
+            } else { alert("Sem dados anteriores."); }
+        }
+
+        function atualizarIcone(input) {
+            const isRec = input.value.toUpperCase().includes('RECEITA');
+            input.previousElementSibling.innerText = isRec ? '💰' : '💸';
+            input.closest('.card').classList.toggle('receita-card', isRec);
+            calcular();
+        }
+
+        function toggleNovaCat() { document.getElementById('input-nova-cat').style.display = document.getElementById('sel-categoria').value === "NOVA_CAT" ? "block" : "none"; }
 
         function adicionar() {
             const sel = document.getElementById('sel-categoria');
@@ -218,11 +205,12 @@
             else {
                 const r = document.createElement('div'); r.className = 'row';
                 r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" onchange="marcarPago(this)"><span class="desc">${nome}</span></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${valor}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;">×</button></div>`;
-                card.appendChild(r);
+                card.querySelector('.rows-container').appendChild(r);
             }
             calcular();
             document.getElementById('novo-nome').value = ""; document.getElementById('novo-valor').value = "";
         }
+        window.onload = () => { /* Inicia via senha */ };
     </script>
 </body>
 </html>
