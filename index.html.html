@@ -37,7 +37,7 @@
     <div class="top-header" id="main-header">
         <div style="text-align:center; margin-bottom:12px;">
             <select id="select-ano" onchange="carregarDadosNuvem()" style="background:rgba(255,255,255,0.1); color:white; border:none; border-radius:8px; padding:6px 12px; font-weight:bold; cursor:pointer;">
-                <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                <option value="2025">2025</option><option value="2026" selected>2026</option>
             </select>
         </div>
         <div class="stats-grid">
@@ -66,7 +66,7 @@
 
     <script>
         const SUPABASE_URL = 'https://tpblbledkcafbjndruha.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY5NDYwNzUsImV4cCI6MjA1MjUyMjA3NX0.pI-z6mUj9-M9_M_M9_M9_M9_M9_M9_M9_M9_M9_M9_M'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQxNTM1MCwiZXhwIjoyMDgzOTkxMzUwfQ.i4Soq1YctsZrowGcOrwPDOCs0mU9LVjDg_DQFgOJI'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let mesAtual = new Date().getMonth();
@@ -98,10 +98,12 @@
         async function carregarDadosNuvem() {
             const ano = document.getElementById('select-ano').value;
             const { data, error } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
-            if (error) console.error("Erro ao carregar:", error.message);
             document.getElementById('container-geral').innerHTML = "";
             if (data && data.dados) data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
-            else criarCard("RECEITAS", [{desc: "Salário Bruno", val: "0,00", pago: false}]);
+            else {
+                criarCard("RECEITAS", [{desc: "Salário Bruno", val: "0,00", pago: false}]);
+                criarCard("DESPESAS FIXAS", []);
+            }
             document.querySelectorAll('.month-btn').forEach((b, i) => b.classList.toggle('active', i === mesAtual));
             calcular();
         }
