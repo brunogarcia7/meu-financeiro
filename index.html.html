@@ -50,10 +50,13 @@
 
     <div class="add-panel">
         <button class="btn-main" style="background:var(--primary); margin-bottom:20px" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR TUDO</button>
-        <select id="sel-categoria" class="full">
+        <h3 style="margin-top:0; color: var(--primary)">Novo Lançamento</h3>
+        <select id="sel-categoria" class="full" onchange="toggleNovaCat()">
             <option value="RECEITAS">RECEITAS</option>
             <option value="DESPESAS">DESPESAS</option>
+            <option value="NOVA_CAT">+ Criar Novo Bloco</option>
         </select>
+        <input type="text" id="input-nova-cat" class="full" style="display:none" placeholder="Nome da nova categoria (ex: Cartão)">
         <input type="text" id="novo-nome" class="full" placeholder="Descrição">
         <input type="text" id="novo-valor" class="full" placeholder="R$ 0,00" oninput="formatarMoeda(this)">
         <button class="btn-main" style="background:var(--success)" onclick="adicionar()">ADICIONAR À LISTA</button>
@@ -96,23 +99,18 @@
             const ano = document.getElementById('select-ano').value;
             let mesBusca = mesAtual === 0 ? 11 : mesAtual - 1;
             let anoBusca = mesAtual === 0 ? (parseInt(ano)-1).toString() : ano;
-
             const { data } = await _supabase.from('registros').select('dados').eq('ano', anoBusca).eq('mes', mesBusca).maybeSingle();
-            
             if (data && data.dados) {
-                if(confirm(`Copiar dados de ${nomesMeses[mesBusca]}? Isso vai substituir o que está na tela.`)) {
+                if(confirm(`Copiar dados de ${nomesMeses[mesBusca]}? Isso substituirá o atual.`)) {
                     document.getElementById('container-geral').innerHTML = "";
-                    // Copia os itens mas coloca todos como NÃO PAGOS (false)
                     data.dados.forEach(cat => {
                         let itensResetados = cat.itens.map(it => ({...it, pago: false}));
                         criarCard(cat.categoria, itensResetados);
                     });
                     calcular();
-                    alert("Dados copiados! Não esqueça de clicar em SALVAR.");
+                    alert("Dados copiados! Clique em SALVAR para confirmar.");
                 }
-            } else {
-                alert("Não encontramos dados no mês anterior para copiar.");
-            }
+            } else { alert("Sem dados no mês anterior."); }
         }
 
         async function salvarNaNuvem() {
@@ -123,7 +121,7 @@
                 c.querySelectorAll('.row').forEach(r => {
                     itens.push({ desc: r.querySelector('.desc').innerText, val: r.querySelector('.val-box').value, pago: r.querySelector('.check-pagar').checked });
                 });
-                dados.push({ categoria: c.querySelector('h3').innerText, itens });
+                dados.push({ categoria: c.querySelector('h3').innerText.replace(/[💰💸]\s*/, ""), itens });
             });
             const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
             if (error) alert("Erro: " + error.message); else alert("Sincronizado!");
@@ -131,8 +129,9 @@
 
         function criarCard(tit, itens) {
             const card = document.createElement('div');
-            card.className = tit.includes('RECEITA') ? 'card receita-card' : 'card';
-            card.innerHTML = `<h3>${tit}</h3>`;
+            const isRec = tit.toUpperCase().includes('RECEITA');
+            card.className = isRec ? 'card receita-card' : 'card';
+            card.innerHTML = `<h3>${isRec ? '💰' : '💸'} ${tit}</h3>`;
             itens.forEach(item => {
                 const row = document.createElement('div');
                 row.className = `row ${item.pago ? 'pago' : ''}`;
@@ -142,6 +141,7 @@
             document.getElementById('container-geral').appendChild(card);
         }
 
+        function toggleNovaCat() { document.getElementById('input-nova-cat').style.display = document.getElementById('sel-categoria').value === "NOVA_CAT" ? "block" : "none"; }
         function formatarMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v/100).toLocaleString('pt-BR', {minimumFractionDigits: 2}); i.value = v === "0,00" ? "" : v; calcular(); }
         function marcarPago(cb) { cb.closest('.row').classList.toggle('pago', cb.checked); calcular(); }
         
@@ -160,9 +160,10 @@
         }
 
         function adicionar() {
-            const cat = document.getElementById('sel-categoria').value;
+            const sel = document.getElementById('sel-categoria');
+            let cat = sel.value === "NOVA_CAT" ? document.getElementById('input-nova-cat').value.toUpperCase() : sel.value;
             const nome = document.getElementById('novo-nome').value, valor = document.getElementById('novo-valor').value;
-            if(!nome || !valor) return;
+            if(!cat || !nome || !valor) return;
             let card = Array.from(document.querySelectorAll('.card')).find(c => c.querySelector('h3').innerText.includes(cat));
             if(!card) criarCard(cat, [{desc: nome, val: valor, pago: false}]);
             else {
