@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle Financeiro</title>
+    <title>Controle Financeiro Bruno</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #002060; --danger: #ff4d4d; --success: #28a745; --warning: #ffd54f; --bg: #f0f4f8; --card-bg: #ffffff; --receita-bg: #f1f5f9; --negative-bg: #b91c1c; }
@@ -18,7 +18,7 @@
         .card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 10px; }
         .card.receita-card { background: var(--receita-bg); border-left: 6px solid var(--success); }
         .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; gap: 10px; }
-        .row.pago { background: #e8f5e9; border-radius: 10px; padding: 8px; }
+        .row.pago { background: #e8f5e9; border-radius: 10px; padding: 8px; opacity: 0.7; }
         .val-box { width: 85px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: right; font-weight: 700; }
         .add-panel { background: white; margin: 20px; padding: 25px; border-radius: 20px; border: 2px dashed var(--primary); }
         .full { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-sizing: border-box; }
@@ -34,12 +34,12 @@
         </div>
         <div class="stats-grid">
             <div class="stat-item"><small>SALDO</small><h2 id="res-saldo">R$ 0,00</h2></div>
-            <div class="stat-item"><small>PAGO</small><h2 id="res-pago">R$ 0,00</h2></div>
-            <div class="stat-item"><small>FALTA</small><h2 id="res-falta">R$ 0,00</h2></div>
+            <div class="stat-item"><small>PAGO</small><h2 id="res-pago" style="color: #a5d6a7;">R$ 0,00</h2></div>
+            <div class="stat-item"><small>FALTA</small><h2 id="res-falta" style="color: var(--warning);">R$ 0,00</h2></div>
         </div>
     </div>
     <div class="month-scroller" id="mes-barra"></div>
-    <div class="blocks-container" id="container-geral"></div>
+    <div id="container-geral" class="blocks-container"></div>
     <div class="add-panel">
         <button class="btn-main" style="background:var(--primary); margin-bottom:20px" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR</button>
         <select id="sel-categoria" class="full">
@@ -53,7 +53,7 @@
 
     <script>
         const SUPABASE_URL = 'https://tpblbledkcafbjndruha.supabase.co'; 
-        const SUPABASE_KEY = 'sb_secret_KtZZ2Pkd0he0jJNva9ygxw_x4zCk'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MTUzNTAsImV4cCI6MjA4Mzk5MTM1MH0.uYhuP6BA6qUQIDJeiZArbR5teOQB8PFYTsyYDXkZvao'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let mesAtual = new Date().getMonth();
@@ -82,15 +82,14 @@
                 dados.push({ categoria: c.querySelector('h3').innerText, itens });
             });
             const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
-            if (error) alert("Erro: " + error.message); else alert("Sincronizado com a Nuvem!");
+            if (error) alert("Erro ao salvar: " + error.message); else alert("Sincronizado com Sucesso!");
         }
 
         async function carregarDadosNuvem() {
             initBarra();
             const ano = document.getElementById('select-ano').value;
-            const { data } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
-            const cont = document.getElementById('container-geral');
-            cont.innerHTML = "";
+            const { data, error } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
+            document.getElementById('container-geral').innerHTML = "";
             if (data && data.dados) {
                 data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
             } else {
@@ -112,7 +111,7 @@
             document.getElementById('container-geral').appendChild(card);
         }
 
-        function formatarMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v/100).toLocaleString('pt-BR', {minimumFractionDigits: 2}); i.value = v; calcular(); }
+        function formatarMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v/100).toLocaleString('pt-BR', {minimumFractionDigits: 2}); i.value = v === "0,00" ? "" : v; calcular(); }
         function marcarPago(cb) { cb.closest('.row').classList.toggle('pago', cb.checked); calcular(); }
         
         function calcular() {
@@ -142,7 +141,6 @@
             }
             calcular();
         }
-
         window.onload = carregarDadosNuvem;
     </script>
 </body>
