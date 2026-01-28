@@ -3,28 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financeiro Bruno - Recuperação</title>
+    <title>Financeiro Bruno - MESTRE</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #002060; --danger: #ff4d4d; --success: #28a745; --warning: #ffd54f; --bg: #f0f4f8; --card-bg: #ffffff; --receita-bg: #f1f5f9; --negative-bg: #b91c1c; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 0; color: #334155; }
+        
+        /* TELA DE LOGIN */
         #tela-senha { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; }
         .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 80%; max-width: 320px; text-align: center; color: #334155; }
-        #app-principal { display: none; }
+        
+        #app-principal { display: none; } /* Escondido até digitar a senha */
+
         .top-header { background: var(--primary); color: white; padding: 25px 20px; border-radius: 0 0 25px 25px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 10px 25px rgba(0,32,96,0.2); }
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 1000px; margin: 0 auto; text-align: center; }
         .stat-item h2 { margin: 5px 0 0; font-size: 1.1rem; white-space: nowrap; }
         .month-scroller { display: flex; overflow-x: auto; gap: 10px; padding: 20px; scrollbar-width: none; }
         .month-btn { background: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; color: #64748b; min-width: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .month-btn.active { background: var(--primary); color: white; }
+        
         .blocks-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; padding: 0 20px 20px; align-items: start; }
         .card { background: var(--card-bg); border-radius: 20px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: fit-content; }
         .card.receita-card { background: var(--receita-bg); border-left: 6px solid var(--success); }
+        
         .editable-title { border: none; background: transparent; font-weight: bold; color: var(--primary); font-size: 0.85rem; text-transform: uppercase; width: 80%; cursor: text; padding: 5px; border-radius: 5px; }
         .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; gap: 10px; }
         .row.pago { background: #e8f5e9; border-radius: 10px; padding: 8px; opacity: 0.7; }
         .val-box { width: 85px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: right; font-weight: 700; }
         .subtotal-bloco { margin-top: 15px; padding-top: 10px; border-top: 2px dashed #e2e8f0; text-align: right; font-size: 0.9rem; font-weight: 800; color: var(--primary); }
+        
         .btn-copiar { background: #64748b; color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-bottom: 15px; text-transform: uppercase; font-size: 0.8rem; }
         .add-panel { background: white; margin: 20px; padding: 25px; border-radius: 20px; border: 2px dashed var(--primary); }
         .full { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px; box-sizing: border-box; }
@@ -32,13 +39,14 @@
     </style>
 </head>
 <body>
+
     <div id="tela-senha">
         <div class="login-box">
-            <h2>Acesso Restrito</h2>
+            <h2 style="margin-top:0">Acesso Restrito</h2>
             <p>Olá, Bruno! Digite sua senha:</p>
-            <input type="password" id="input-senha" class="full" placeholder="Bgp1705">
+            <input type="password" id="input-senha" class="full" placeholder="Sua senha aqui">
             <button class="btn-main" style="background:var(--primary)" onclick="verificarSenha()">ENTRAR</button>
-            <p id="erro-senha" style="color:red; display:none; margin-top:10px">Senha incorreta!</p>
+            <p id="erro-senha" style="color:red; display:none; font-size:0.8rem; margin-top:10px">Senha incorreta!</p>
         </div>
     </div>
 
@@ -55,9 +63,11 @@
                 <div class="stat-item"><small>FALTA</small><h2 id="res-falta" style="color: var(--warning);">R$ 0,00</h2></div>
             </div>
         </div>
+
         <div class="month-scroller" id="mes-barra"></div>
         <div style="padding: 0 20px;"><button class="btn-copiar" onclick="copiarMesAnterior()">📋 Copiar dados do mês anterior</button></div>
         <div id="container-geral" class="blocks-container"></div>
+
         <div class="add-panel">
             <button class="btn-main" style="background:var(--primary); margin-bottom:20px" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR TUDO</button>
             <h3 style="margin-top:0; color: var(--primary)">Novo Lançamento</h3>
@@ -72,8 +82,9 @@
     </div>
 
     <script>
+        // USANDO A CHAVE MESTRA (SERVICE_ROLE) PARA GARANTIR A LEITURA
         const SUPABASE_URL = 'https://tpblbledkcafbjndruha.supabase.co'; 
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MTUzNTAsImV4cCI6MjA4Mzk5MTM1MH0.uYhuP6BA6qUQIDJeiZArbR5teOQB8PFYTsyYDXkZvao'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQxNTM1MCwiZXhwIjoyMDgzOTkxMzUwfQ.i4Soq1YctsZrowGcOrwPDOCs0mU9LVjDg_DQFgOJI5o'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let mesAtual = parseInt(localStorage.getItem('ultimoMes')) || new Date().getMonth();
@@ -87,6 +98,8 @@
                 carregarDadosNuvem();
             } else { document.getElementById('erro-senha').style.display = 'block'; }
         }
+
+        document.getElementById('input-senha').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificarSenha(); });
 
         const nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
@@ -106,10 +119,19 @@
             initBarra();
             const ano = document.getElementById('select-ano').value;
             localStorage.setItem('ultimoAno', ano);
-            const { data } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
+            
+            // LOGICA PARA BUSCAR DADOS
+            const { data, error } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
+            
+            if (error) { console.error("Erro ao buscar:", error); }
+            
             document.getElementById('container-geral').innerHTML = "";
-            if (data && data.dados) { data.dados.forEach(cat => criarCard(cat.categoria, cat.itens)); }
-            else { criarCard("RECEITAS", []); criarCard("DESPESAS", []); }
+            if (data && data.dados) { 
+                data.dados.forEach(cat => criarCard(cat.categoria, cat.itens)); 
+            } else { 
+                // Se não achar nada, cria padrão
+                criarCard("RECEITAS", []); criarCard("DESPESAS", []); 
+            }
             calcular();
         }
 
@@ -124,7 +146,7 @@
                 dados.push({ categoria: c.querySelector('.editable-title').value, itens });
             });
             const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
-            if (error) alert("Erro: " + error.message); else alert("Sincronizado!");
+            if (error) alert("Erro: " + error.message); else alert("Salvo com sucesso!");
         }
 
         function criarCard(tit, itens) {
