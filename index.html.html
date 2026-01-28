@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financeiro Bruno - v34.0</title>
+    <title>Financeiro Bruno - Recuperação</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary: #002060; --danger: #ff4d4d; --success: #28a745; --warning: #ffd54f; --bg: #f0f4f8; --card-bg: #ffffff; --receita-bg: #f1f5f9; --negative-bg: #b91c1c; }
@@ -32,19 +32,18 @@
     </style>
 </head>
 <body>
-
     <div id="tela-senha">
         <div class="login-box">
-            <h2 style="margin-top:0">Acesso Restrito</h2>
+            <h2>Acesso Restrito</h2>
             <p>Olá, Bruno! Digite sua senha:</p>
-            <input type="password" id="input-senha" class="full" placeholder="Sua senha aqui">
+            <input type="password" id="input-senha" class="full" placeholder="Bgp1705">
             <button class="btn-main" style="background:var(--primary)" onclick="verificarSenha()">ENTRAR</button>
-            <p id="erro-senha" style="color:red; display:none; font-size:0.8rem; margin-top:10px">Senha incorreta!</p>
+            <p id="erro-senha" style="color:red; display:none; margin-top:10px">Senha incorreta!</p>
         </div>
     </div>
 
     <div id="app-principal">
-        <div class="top-header" id="main-header">
+        <div class="top-header">
             <div style="text-align:center; margin-bottom:12px;">
                 <select id="select-ano" onchange="carregarDadosNuvem()" style="background:rgba(255,255,255,0.1); color:white; border:none; padding:6px; border-radius:8px;">
                     <option value="2024">2024</option><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option>
@@ -56,11 +55,9 @@
                 <div class="stat-item"><small>FALTA</small><h2 id="res-falta" style="color: var(--warning);">R$ 0,00</h2></div>
             </div>
         </div>
-
         <div class="month-scroller" id="mes-barra"></div>
         <div style="padding: 0 20px;"><button class="btn-copiar" onclick="copiarMesAnterior()">📋 Copiar dados do mês anterior</button></div>
         <div id="container-geral" class="blocks-container"></div>
-
         <div class="add-panel">
             <button class="btn-main" style="background:var(--primary); margin-bottom:20px" onclick="salvarNaNuvem()">☁️ SALVAR E SINCRONIZAR TUDO</button>
             <h3 style="margin-top:0; color: var(--primary)">Novo Lançamento</h3>
@@ -79,7 +76,6 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MTUzNTAsImV4cCI6MjA4Mzk5MTM1MH0.uYhuP6BA6qUQIDJeiZArbR5teOQB8PFYTsyYDXkZvao'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Ao carregar, busca se existe um mês e ano salvos no navegador
         let mesAtual = parseInt(localStorage.getItem('ultimoMes')) || new Date().getMonth();
         let anoSalvo = localStorage.getItem('ultimoAno') || "2026";
 
@@ -92,8 +88,6 @@
             } else { document.getElementById('erro-senha').style.display = 'block'; }
         }
 
-        document.getElementById('input-senha').addEventListener('keypress', (e) => { if (e.key === 'Enter') verificarSenha(); });
-
         const nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
         function initBarra() {
@@ -103,12 +97,7 @@
                 const btn = document.createElement('button');
                 btn.className = `month-btn ${i === mesAtual ? 'active' : ''}`;
                 btn.innerText = nome;
-                btn.onclick = () => { 
-                    mesAtual = i; 
-                    // Salva o mês atual ao clicar
-                    localStorage.setItem('ultimoMes', i);
-                    carregarDadosNuvem(); 
-                };
+                btn.onclick = () => { mesAtual = i; localStorage.setItem('ultimoMes', i); carregarDadosNuvem(); };
                 barra.appendChild(btn);
             });
         }
@@ -116,7 +105,6 @@
         async function carregarDadosNuvem() {
             initBarra();
             const ano = document.getElementById('select-ano').value;
-            // Salva o ano atual no navegador
             localStorage.setItem('ultimoAno', ano);
             const { data } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
             document.getElementById('container-geral').innerHTML = "";
@@ -127,10 +115,6 @@
 
         async function salvarNaNuvem() {
             const ano = document.getElementById('select-ano').value;
-            // Garante que o mês e ano atuais estão gravados na memória do navegador
-            localStorage.setItem('ultimoMes', mesAtual);
-            localStorage.setItem('ultimoAno', ano);
-
             const dados = [];
             document.querySelectorAll('.card').forEach(c => {
                 const itens = [];
@@ -140,21 +124,14 @@
                 dados.push({ categoria: c.querySelector('.editable-title').value, itens });
             });
             const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
-            if (error) alert("Erro: " + error.message); else alert("Sincronizado! O navegador lembrará desta aba.");
+            if (error) alert("Erro: " + error.message); else alert("Sincronizado!");
         }
 
         function criarCard(tit, itens) {
             const card = document.createElement('div');
             const isRec = tit.toUpperCase().includes('RECEITA');
             card.className = isRec ? 'card receita-card' : 'card';
-            card.innerHTML = `<h3 style="display:flex; align-items:center; gap:5px;">
-                <span class="icon">${isRec ? '💰' : '💸'}</span>
-                <input type="text" class="editable-title" value="${tit}" oninput="atualizarIcone(this)">
-                <button onclick="if(confirm('Apagar bloco?')) {this.closest('.card').remove();calcular();}" style="border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:0.7rem;margin-left:auto;">🗑️</button>
-            </h3>
-            <div class="rows-container"></div>
-            <div class="subtotal-bloco">Total: R$ 0,00</div>`;
-            
+            card.innerHTML = `<h3 style="display:flex; align-items:center; gap:5px;"><span class="icon">${isRec ? '💰' : '💸'}</span><input type="text" class="editable-title" value="${tit}" oninput="atualizarIcone(this)"><button onclick="if(confirm('Apagar bloco?')) {this.closest('.card').remove();calcular();}" style="border:none;background:none;color:#cbd5e1;cursor:pointer;font-size:0.7rem;margin-left:auto;">🗑️</button></h3><div class="rows-container"></div><div class="subtotal-bloco">Total: R$ 0,00</div>`;
             const rowsCont = card.querySelector('.rows-container');
             itens.forEach(item => {
                 const row = document.createElement('div');
@@ -167,20 +144,18 @@
 
         function formatarMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v/100).toLocaleString('pt-BR', {minimumFractionDigits: 2}); i.value = v === "0,00" ? "" : v; calcular(); }
         function marcarPago(cb) { cb.closest('.row').classList.toggle('pago', cb.checked); calcular(); }
-        
         function calcular() {
             let tr=0, tp=0, tf=0;
             document.querySelectorAll('.card').forEach(card => {
-                let totalBloco = 0;
+                let tb = 0;
                 card.querySelectorAll('.val-box').forEach(vBox => {
                     const val = parseFloat(vBox.value.replace(/\./g, '').replace(',', '.')) || 0;
-                    totalBloco += val;
-                    const isRec = card.classList.contains('receita-card');
-                    if (isRec) tr += val;
+                    tb += val;
+                    if (card.classList.contains('receita-card')) tr += val;
                     else if (vBox.closest('.row').querySelector('.check-pagar').checked) tp += val;
                     else tf += val;
                 });
-                card.querySelector('.subtotal-bloco').innerText = "Total: R$ " + totalBloco.toLocaleString('pt-BR', {minimumFractionDigits:2});
+                card.querySelector('.subtotal-bloco').innerText = "Total: R$ " + tb.toLocaleString('pt-BR', {minimumFractionDigits:2});
             });
             document.getElementById('res-saldo').innerText = "R$ " + (tr - tp - tf).toLocaleString('pt-BR', {minimumFractionDigits:2});
             document.getElementById('res-pago').innerText = "R$ " + tp.toLocaleString('pt-BR', {minimumFractionDigits:2});
