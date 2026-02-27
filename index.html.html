@@ -13,7 +13,7 @@
         #tela-senha { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; }
         .login-box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 80%; max-width: 320px; text-align: center; color: #334155; }
         
-        #app-principal { display: none; } /* Escondido até digitar a senha */
+        #app-principal { display: none; }
 
         .top-header { background: var(--primary); color: white; padding: 25px 20px; border-radius: 0 0 25px 25px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 10px 25px rgba(0,32,96,0.2); }
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 1000px; margin: 0 auto; text-align: center; }
@@ -82,7 +82,6 @@
     </div>
 
     <script>
-        // USANDO A CHAVE MESTRA (SERVICE_ROLE) PARA GARANTIR A LEITURA
         const SUPABASE_URL = 'https://tpblbledkcafbjndruha.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQxNTM1MCwiZXhwIjoyMDgzOTkxMzUwfQ.i4Soq1YctsZrowGcOrwPDOCs0mU9LVjDg_DQFgOJI5o'; 
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -120,7 +119,6 @@
             const ano = document.getElementById('select-ano').value;
             localStorage.setItem('ultimoAno', ano);
             
-            // LOGICA PARA BUSCAR DADOS
             const { data, error } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
             
             if (error) { console.error("Erro ao buscar:", error); }
@@ -129,7 +127,6 @@
             if (data && data.dados) { 
                 data.dados.forEach(cat => criarCard(cat.categoria, cat.itens)); 
             } else { 
-                // Se não achar nada, cria padrão
                 criarCard("RECEITAS", []); criarCard("DESPESAS", []); 
             }
             calcular();
@@ -158,10 +155,19 @@
             itens.forEach(item => {
                 const row = document.createElement('div');
                 row.className = `row ${item.pago ? 'pago' : ''}`;
-                row.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" ${item.pago ? 'checked' : ''} onchange="marcarPago(this)"><span class="desc">${item.desc}</span></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${item.val}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;">×</button></div>`;
+                row.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" ${item.pago ? 'checked' : ''} onchange="marcarPago(this)"><span class="desc">${item.desc}</span><button onclick="editarNomeItem(this)" style="border:none;background:none;cursor:pointer;font-size:0.8rem;padding:0;" title="Editar Nome">✏️</button></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${item.val}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;" title="Apagar Item">×</button></div>`;
                 rowsCont.appendChild(row);
             });
             document.getElementById('container-geral').appendChild(card);
+        }
+
+        // NOVA FUNÇÃO: EDITAR O NOME DO ITEM
+        function editarNomeItem(btn) {
+            const spanNome = btn.previousElementSibling;
+            const novoNome = prompt("Digite o novo nome para este item:", spanNome.innerText);
+            if (novoNome !== null && novoNome.trim() !== "") {
+                spanNome.innerText = novoNome.trim();
+            }
         }
 
         function formatarMoeda(i) { let v = i.value.replace(/\D/g, ""); v = (v/100).toLocaleString('pt-BR', {minimumFractionDigits: 2}); i.value = v === "0,00" ? "" : v; calcular(); }
@@ -216,7 +222,7 @@
             if(!card) criarCard(cat, [{desc: nome, val: valor, pago: false}]);
             else {
                 const r = document.createElement('div'); r.className = 'row';
-                r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" onchange="marcarPago(this)"><span class="desc">${nome}</span></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${valor}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;">×</button></div>`;
+                r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="check-pagar" onchange="marcarPago(this)"><span class="desc">${nome}</span><button onclick="editarNomeItem(this)" style="border:none;background:none;cursor:pointer;font-size:0.8rem;padding:0;" title="Editar Nome">✏️</button></div><div style="display:flex;align-items:center;gap:5px;"><input type="text" class="val-box" value="${valor}" oninput="formatarMoeda(this)"><button onclick="this.closest('.row').remove();calcular();" style="border:none;background:none;color:red;cursor:pointer;font-weight:bold;" title="Apagar Item">×</button></div>`;
                 card.querySelector('.rows-container').appendChild(r);
             }
             calcular();
