@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f2344">
+    <title>Meu Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --navy-950: #07162d;
+            --navy-900: #0b1f3a;
+            --navy-800: #10335f;
+            --navy-700: #174a83;
+            --blue-500: #2f7cf4;
+            --blue-100: #dbeafe;
+            --green-700: #16734a;
+            --green-600: #1f8f5f;
+            --green-100: #dcfce7;
+            --amber-700: #a15c08;
+            --amber-100: #fef3c7;
+            --red-700: #b42318;
+            --red-100: #fee4e2;
+            --slate-950: #101828;
+            --slate-800: #344054;
+            --slate-700: #475467;
+            --slate-600: #667085;
+            --slate-500: #98a2b3;
+            --slate-300: #d0d5dd;
+            --slate-200: #eaecf0;
+            --slate-100: #f2f4f7;
+            --surface: #ffffff;
+            --canvas: #f5f7fb;
+            --shadow-sm: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06);
+            --shadow-md: 0 8px 24px rgba(16, 24, 40, .08);
+            --shadow-lg: 0 24px 48px rgba(4, 16, 34, .22);
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 26px;
+            --max-width: 1180px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--canvas);
+            color: var(--slate-950);
+            font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button, input, select { font: inherit; }
+        button { -webkit-tap-highlight-color: transparent; }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 auto;
+            stroke: currentColor;
+            stroke-width: 1.9;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .icon-sm { width: 16px; height: 16px; }
+        .icon-lg { width: 24px; height: 24px; }
+
+        /* LOGIN */
+        #tela-senha {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: #fff;
+            overflow: auto;
+            background:
+                radial-gradient(circle at 15% 15%, rgba(47, 124, 244, .36), transparent 28%),
+                radial-gradient(circle at 85% 85%, rgba(30, 150, 95, .20), transparent 30%),
+                linear-gradient(145deg, var(--navy-950), var(--navy-800));
+        }
+
+        #tela-senha::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: .16;
+            background-image:
+                linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+            background-size: 42px 42px;
+            pointer-events: none;
+        }
+
+        .login-shell {
+            position: relative;
+            width: min(100%, 430px);
+        }
+
+        .login-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #3d8bff, #235fc8);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 22px rgba(0,0,0,.16);
+        }
+
+        .login-box {
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,.55);
+            border-radius: var(--radius-xl);
+            background: rgba(255,255,255,.97);
+            box-shadow: var(--shadow-lg);
+            color: var(--slate-950);
+            backdrop-filter: blur(12px);
+        }
+
+        .login-eyebrow {
+            margin: 0 0 8px;
+            color: var(--blue-500);
+            font-size: .78rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .login-box h1 {
+            margin: 0;
+            font-size: clamp(1.7rem, 4vw, 2rem);
+            letter-spacing: -.035em;
+        }
+
+        .login-box p.login-copy {
+            margin: 10px 0 24px;
+            color: var(--slate-600);
+            line-height: 1.55;
+        }
+
+        .field-label {
+            display: block;
+            margin: 0 0 7px;
+            color: var(--slate-700);
+            font-size: .82rem;
+            font-weight: 700;
+        }
+
+        .password-wrap { position: relative; }
+        .password-wrap .input { padding-right: 48px; }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            border: 0;
+            border-radius: 10px;
+            color: var(--slate-600);
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .password-toggle:hover { background: var(--slate-100); color: var(--slate-950); }
+
+        #erro-senha {
+            display: none;
+            gap: 7px;
+            align-items: center;
+            margin: 10px 0 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: var(--red-700);
+            background: var(--red-100);
+            font-size: .82rem;
+            font-weight: 700;
+        }
+
+        #app-principal { display: none; min-height: 100vh; }
+
+        /* CABECALHO */
+        .app-header {
+            position: relative;
+            overflow: hidden;
+            padding: 18px 20px 30px;
+            color: #fff;
+            background:
+                radial-gradient(circle at 80% 0%, rgba(61, 139, 255, .32), transparent 34%),
+                linear-gradient(125deg, var(--navy-950), var(--navy-800));
+            box-shadow: 0 12px 28px rgba(10, 31, 59, .12);
+        }
+
+        .app-header::after {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            right: -95px;
+            bottom: -180px;
+            border: 34px solid rgba(255,255,255,.04);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .header-inner {
+            position: relative;
+            z-index: 1;
+            width: min(100%, var(--max-width));
+            margin: 0 auto;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .app-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .app-brand .brand-mark { width: 40px; height: 40px; }
+        .app-title { min-width: 0; }
+        .app-title strong { display: block; font-size: 1.05rem; letter-spacing: -.02em; }
+        .app-title span { display: block; margin-top: 2px; color: rgba(255,255,255,.62); font-size: .76rem; white-space: nowrap; }
+
+        .period-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 6px 5px 10px;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 12px;
+            background: rgba(255,255,255,.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .period-control span {
+            color: rgba(255,255,255,.62);
+            font-size: .75rem;
+            font-weight: 700;
+        }
+
+        #select-ano {
+            min-width: 78px;
+            padding: 7px 28px 7px 10px;
+            border: 0;
+            outline: 0;
+            border-radius: 9px;
+            color: #fff;
+            background: rgba(255,255,255,.10);
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        #select-ano option { color: #111827; background: #fff; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .summary-card {
+            min-width: 0;
+            padding: 15px 16px;
+            border: 1px solid rgba(255,255,255,.11);
+            border-radius: 17px;
+            background: rgba(255,255,255,.07);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 8px;
+            color: rgba(255,255,255,.68);
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .045em;
+            text-transform: uppercase;
+        }
+
+        .summary-value {
+            margin: 0;
+            overflow: hidden;
+            color: #fff;
+            font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+            font-weight: 800;
+            letter-spacing: -.035em;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .summary-card.income .summary-value { color: #9fe7bf; }
+        .summary-card.paid .summary-value { color: #b7d3ff; }
+        .summary-card.pending .summary-value { color: #ffd88a; }
+        .summary-card.balance.negative { background: rgba(180, 35, 24, .18); border-color: rgba(255, 192, 186, .18); }
+        .summary-card.balance.negative .summary-value { color: #ffc0ba; }
+
+        /* CONTEUDO */
+        .page-shell {
+            width: min(100%, var(--max-width));
+            margin: 0 auto;
+            padding: 20px 20px 110px;
+        }
+
+        .month-section {
+            margin-top: -4px;
+            margin-bottom: 16px;
+        }
+
+        .month-scroller {
+            display: flex;
+            gap: 7px;
+            overflow-x: auto;
+            padding: 3px 2px 8px;
+            scrollbar-width: none;
+            scroll-snap-type: x proximity;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .month-scroller::-webkit-scrollbar { display: none; }
+
+        .month-btn {
+            flex: 0 0 auto;
+            min-width: 68px;
+            padding: 9px 13px;
+            border: 1px solid var(--slate-200);
+            border-radius: 11px;
+            color: var(--slate-600);
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+            font-size: .78rem;
+            font-weight: 800;
+            cursor: pointer;
+            scroll-snap-align: center;
+            transition: .18s ease;
+        }
+
+        .month-btn:hover { transform: translateY(-1px); color: var(--navy-800); border-color: #cbd8e8; }
+        .month-btn.active { color: #fff; border-color: var(--navy-800); background: var(--navy-800); box-shadow: 0 7px 16px rgba(16,51,95,.20); }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 9px; }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--slate-600);
+            font-size: .76rem;
+            font-weight: 700;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green-600);
+            box-shadow: 0 0 0 3px rgba(31,143,95,.10);
+        }
+
+        .status-dot.dirty { background: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,.10); }
+        .status-dot.error { background: var(--red-700); box-shadow: 0 0 0 3px rgba(180,35,24,.10); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 10px 14px;
+            border: 1px solid transparent;
+            border-radius: 11px;
+            font-weight: 800;
+            font-size: .82rem;
+            cursor: pointer;
+            transition: .18s ease;
+        }
+
+        .btn:active { transform: translateY(1px); }
+        .btn:disabled { opacity: .62; cursor: not-allowed; transform: none; }
+
+        .btn-secondary {
+            color: var(--slate-700);
+            border-color: var(--slate-200);
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover { color: var(--navy-800); border-color: #c7d4e5; background: #fbfcfe; }
+
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+            box-shadow: 0 7px 14px rgba(16,51,95,.18);
+        }
+
+        .btn-primary:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+        .btn-success {
+            color: #fff;
+            background: linear-gradient(135deg, var(--green-700), var(--green-600));
+            box-shadow: 0 7px 14px rgba(22,115,74,.17);
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 18px 0 12px;
+        }
+
+        .section-heading h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.025em; }
+        .section-heading p { margin: 4px 0 0; color: var(--slate-600); font-size: .78rem; }
+
+        .blocks-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            align-items: start;
+        }
+
+        .card {
+            overflow: hidden;
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+        }
+
+        .card:hover { border-color: #d9e1eb; box-shadow: var(--shadow-md); transform: translateY(-1px); }
+        .card.receita-card { border-top: 3px solid var(--green-600); }
+        .card:not(.receita-card) { border-top: 3px solid var(--navy-700); }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 16px 13px;
+        }
+
+        .category-icon {
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border-radius: 12px;
+            color: var(--navy-700);
+            background: #eef4fb;
+        }
+
+        .receita-card .category-icon { color: var(--green-700); background: #edf9f2; }
+
+        .category-meta { min-width: 0; flex: 1; }
+
+        .editable-title {
+            width: 100%;
+            padding: 1px 4px 1px 0;
+            border: 0;
+            outline: none;
+            color: var(--slate-950);
+            background: transparent;
+            font-size: .88rem;
+            font-weight: 850;
+            letter-spacing: -.01em;
+            text-transform: uppercase;
+        }
+
+        .editable-title:focus { color: var(--blue-500); }
+
+        .category-subline {
+            margin-top: 3px;
+            color: var(--slate-500);
+            font-size: .72rem;
+            font-weight: 650;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            display: inline-grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border: 0;
+            border-radius: 10px;
+            color: var(--slate-500);
+            background: transparent;
+            cursor: pointer;
+            transition: .15s ease;
+        }
+
+        .icon-btn:hover { color: var(--slate-950); background: var(--slate-100); }
+        .icon-btn.danger:hover { color: var(--red-700); background: var(--red-100); }
+
+        .rows-container {
+            border-top: 1px solid var(--slate-200);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            min-height: 58px;
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--slate-100);
+            transition: background .15s ease;
+        }
+
+        .row:last-child { border-bottom: 0; }
+        .row:hover { background: #fbfcfe; }
+        .row.pago { background: #f3faf6; }
+        .row.pago .desc { color: var(--slate-500); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+        .row-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .check-wrap {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            flex: 0 0 auto;
+        }
+
+        .check-pagar {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            border: 1.5px solid #c4ccd7;
+            border-radius: 7px;
+            background: #fff;
+            cursor: pointer;
+            transition: .15s ease;
+        }
+
+        .check-pagar:checked { border-color: var(--green-600); background: var(--green-600); }
+        .check-pagar:checked::after {
+            content: "";
+            position: absolute;
+            width: 8px;
+            height: 4px;
+            left: 5px;
+            top: 6px;
+            border-left: 2px solid #fff;
+            border-bottom: 2px solid #fff;
+            transform: rotate(-45deg);
+        }
+
+        .desc {
+            overflow: hidden;
+            color: var(--slate-800);
+            font-size: .84rem;
+            font-weight: 650;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .edit-item-btn {
+            width: 28px;
+            height: 28px;
+            margin-left: -3px;
+            opacity: .72;
+        }
+
+        .row-value {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .currency-prefix {
+            color: var(--slate-500);
+            font-size: .72rem;
+            font-weight: 750;
+        }
+
+        .val-box {
+            width: 92px;
+            padding: 7px 6px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            outline: 0;
+            color: var(--slate-950);
+            background: transparent;
+            text-align: right;
+            font-size: .84rem;
+            font-weight: 800;
+        }
+
+        .val-box:hover { background: var(--slate-100); }
+        .val-box:focus { border-color: #b9d1f7; background: #f8fbff; box-shadow: 0 0 0 3px rgba(47,124,244,.08); }
+
+        .delete-item-btn { width: 30px; height: 30px; }
+
+        .empty-card {
+            padding: 20px 16px 22px;
+            border-top: 1px solid var(--slate-200);
+            color: var(--slate-500);
+            text-align: center;
+            font-size: .78rem;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--slate-200);
+            background: #fbfcfe;
+        }
+
+        .card-footer span { color: var(--slate-500); font-size: .72rem; font-weight: 700; }
+        .subtotal-bloco { color: var(--slate-950); font-size: .9rem; font-weight: 850; }
+
+        /* NOVO LANCAMENTO */
+        .add-panel {
+            margin-top: 18px;
+            overflow: hidden;
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .add-panel-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 17px 18px;
+            border-bottom: 1px solid var(--slate-200);
+            background: linear-gradient(180deg, #fff, #fbfcfe);
+        }
+
+        .add-panel-icon {
+            width: 39px;
+            height: 39px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            color: var(--navy-700);
+            background: #eef4fb;
+        }
+
+        .add-panel-head h2 { margin: 0; font-size: .98rem; letter-spacing: -.02em; }
+        .add-panel-head p { margin: 3px 0 0; color: var(--slate-500); font-size: .74rem; }
+
+        .add-form {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.4fr) minmax(180px, .85fr) auto;
+            align-items: end;
+            gap: 11px;
+            padding: 18px;
+        }
+
+        .form-group { min-width: 0; }
+        .form-group.new-category { display: none; grid-column: 1 / -1; }
+
+        .input, .select {
+            width: 100%;
+            min-height: 43px;
+            padding: 10px 12px;
+            border: 1px solid var(--slate-300);
+            border-radius: 11px;
+            outline: 0;
+            color: var(--slate-950);
+            background: #fff;
+            transition: .15s ease;
+        }
+
+        .input::placeholder { color: var(--slate-500); }
+        .input:focus, .select:focus { border-color: #a8c7f4; box-shadow: 0 0 0 4px rgba(47,124,244,.08); }
+
+        .add-form .btn { min-height: 43px; white-space: nowrap; }
+
+        /* MOBILE BAR */
+        .mobile-bottom-bar {
+            display: none;
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom));
+            z-index: 1200;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 7px;
+            border: 1px solid rgba(208,213,221,.84);
+            border-radius: 16px;
+            background: rgba(255,255,255,.92);
+            box-shadow: 0 16px 42px rgba(16,24,40,.20);
+            backdrop-filter: blur(14px);
+        }
+
+        .mobile-bottom-bar .btn { min-height: 43px; padding: 9px 10px; }
+
+        /* TOAST E LOADING */
+        .toast {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            max-width: calc(100vw - 28px);
+            padding: 11px 14px;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 12px;
+            color: #fff;
+            background: #182230;
+            box-shadow: 0 12px 30px rgba(16,24,40,.24);
+            font-size: .8rem;
+            font-weight: 750;
+            transform: translate(-50%, -16px);
+            opacity: 0;
+            pointer-events: none;
+            transition: .22s ease;
+        }
+
+        .toast.show { transform: translate(-50%, 0); opacity: 1; }
+        .toast.success { background: #126b44; }
+        .toast.error { background: #9f241c; }
+
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 5000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(245,247,251,.72);
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 16px;
+            border: 1px solid var(--slate-200);
+            border-radius: 13px;
+            background: #fff;
+            box-shadow: var(--shadow-md);
+            color: var(--slate-700);
+            font-size: .8rem;
+            font-weight: 750;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #d8e1ee;
+            border-top-color: var(--navy-700);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 900px) {
+            .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .blocks-container { grid-template-columns: 1fr; }
+            .add-form { grid-template-columns: 1fr 1fr; }
+            .add-form .form-group:nth-of-type(3) { grid-column: 1; }
+            .add-form .btn { grid-column: 2; }
+        }
+
+        @media (max-width: 680px) {
+            .app-header { padding: 14px 14px 24px; }
+            .page-shell { padding: 14px 12px 112px; }
+            .topbar { margin-bottom: 18px; }
+            .app-brand .brand-mark { width: 36px; height: 36px; border-radius: 11px; }
+            .app-title span { display: none; }
+            .period-control { padding-left: 7px; }
+            .period-control span { display: none; }
+            #select-ano { min-width: 74px; padding: 7px 24px 7px 9px; }
+            .summary-grid { gap: 8px; }
+            .summary-card { padding: 12px 12px; border-radius: 14px; }
+            .summary-label { margin-bottom: 6px; font-size: .66rem; }
+            .summary-value { font-size: 1.03rem; }
+            .toolbar { align-items: flex-start; }
+            .toolbar-right .btn-primary { display: none; }
+            .toolbar-left { width: 100%; }
+            .toolbar-left .btn { flex: 1; }
+            .sync-status { display: none; }
+            .section-heading { margin-top: 15px; }
+            .card { border-radius: 16px; }
+            .card-header { padding: 14px 13px 11px; }
+            .category-icon { width: 35px; height: 35px; border-radius: 11px; }
+            .row { padding: 10px 11px; gap: 7px; min-height: 56px; }
+            .row-main { gap: 8px; }
+            .desc { max-width: 42vw; }
+            .val-box { width: 78px; padding-left: 3px; padding-right: 3px; }
+            .currency-prefix { display: none; }
+            .delete-item-btn { width: 28px; }
+            .card-footer { padding: 11px 13px; }
+            .add-panel { border-radius: 16px; }
+            .add-panel-head { padding: 15px 14px; }
+            .add-form { grid-template-columns: 1fr; padding: 14px; }
+            .add-form .form-group, .add-form .form-group:nth-of-type(3), .add-form .btn { grid-column: 1; }
+            .form-group.new-category { grid-column: 1; }
+            .mobile-bottom-bar { display: grid; }
+        }
+
+        @media (max-width: 390px) {
+            .login-box { padding: 24px 20px; }
+            .summary-card { padding: 11px 10px; }
+            .summary-value { font-size: .95rem; }
+            .month-btn { min-width: 62px; }
+            .desc { max-width: 35vw; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: .001ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <div id="tela-senha">
+        <div class="login-shell">
+            <div class="login-brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M4 7.5h16v11H4z"/><path d="M7 7.5V5.8A1.8 1.8 0 0 1 8.8 4h6.4A1.8 1.8 0 0 1 17 5.8v1.7"/><path d="M15.5 13h4.5"/><circle cx="15.5" cy="13" r=".8" fill="currentColor" stroke="none"/></svg>
+                </div>
+                <span>Meu Financeiro</span>
+            </div>
+            <div class="login-box">
+                <p class="login-eyebrow">Acesso seguro</p>
+                <h1>Bem-vindo de volta</h1>
+                <p class="login-copy">Acesse seu painel para acompanhar receitas, despesas e o saldo do mês.</p>
+                <label class="field-label" for="input-senha">Senha de acesso</label>
+                <div class="password-wrap">
+                    <input type="password" id="input-senha" class="input" placeholder="Digite sua senha" autocomplete="current-password">
+                    <button class="password-toggle" type="button" onclick="toggleSenha()" aria-label="Mostrar ou ocultar senha">
+                        <svg id="icone-senha" class="icon" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.8"/></svg>
+                    </button>
+                </div>
+                <button class="btn btn-primary" style="width:100%;margin-top:12px;min-height:46px" onclick="verificarSenha()">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M9 12h11"/><path d="m16 8 4 4-4 4"/><path d="M13 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8"/></svg>
+                    Entrar
+                </button>
+                <div id="erro-senha">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                    Senha incorreta. Tente novamente.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-principal">
+        <header class="app-header">
+            <div class="header-inner">
+                <div class="topbar">
+                    <div class="app-brand">
+                        <div class="brand-mark" aria-hidden="true">
+                            <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M4 7.5h16v11H4z"/><path d="M7 7.5V5.8A1.8 1.8 0 0 1 8.8 4h6.4A1.8 1.8 0 0 1 17 5.8v1.7"/><path d="M15.5 13h4.5"/><circle cx="15.5" cy="13" r=".8" fill="currentColor" stroke="none"/></svg>
+                        </div>
+                        <div class="app-title">
+                            <strong>Meu Financeiro</strong>
+                            <span>Visão geral das suas finanças</span>
+                        </div>
+                    </div>
+                    <div class="period-control">
+                        <span>Ano</span>
+                        <select id="select-ano" onchange="carregarDadosNuvem()" aria-label="Selecionar ano"></select>
+                    </div>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-card balance" id="card-saldo">
+                        <div class="summary-label">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4 7.5h16v11H4z"/><path d="M15.5 13h4.5"/><circle cx="15.5" cy="13" r=".8" fill="currentColor" stroke="none"/></svg>
+                            Saldo
+                        </div>
+                        <p class="summary-value" id="res-saldo">R$ 0,00</p>
+                    </div>
+                    <div class="summary-card income">
+                        <div class="summary-label">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m7 10 5-5 5 5"/></svg>
+                            Receitas
+                        </div>
+                        <p class="summary-value" id="res-receitas">R$ 0,00</p>
+                    </div>
+                    <div class="summary-card paid">
+                        <div class="summary-label">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.2 2.2 4.8-4.8"/></svg>
+                            Pago
+                        </div>
+                        <p class="summary-value" id="res-pago">R$ 0,00</p>
+                    </div>
+                    <div class="summary-card pending">
+                        <div class="summary-label">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                            A pagar
+                        </div>
+                        <p class="summary-value" id="res-falta">R$ 0,00</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="page-shell">
+            <section class="month-section" aria-label="Seleção de mês">
+                <div class="month-scroller" id="mes-barra"></div>
+            </section>
+
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-secondary" onclick="copiarMesAnterior()">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="8" y="8" width="10" height="10" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                        Copiar mês anterior
+                    </button>
+                </div>
+                <div class="toolbar-right">
+                    <div class="sync-status" id="sync-status">
+                        <span class="status-dot" id="status-dot"></span>
+                        <span id="status-text">Pronto para sincronizar</span>
+                    </div>
+                    <button class="btn btn-primary" id="btn-salvar-topo" onclick="salvarNaNuvem()">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .8-7.9A6 6 0 0 0 6.5 8.2 4.8 4.8 0 0 0 7 18Z"/><path d="M12 11v6"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/></svg>
+                        Salvar e sincronizar
+                    </button>
+                </div>
+            </div>
+
+            <div class="section-heading">
+                <div>
+                    <h2>Movimentações do mês</h2>
+                    <p>Organize receitas e despesas por categoria.</p>
+                </div>
+            </div>
+
+            <section id="container-geral" class="blocks-container" aria-live="polite"></section>
+
+            <section class="add-panel" id="novo-lancamento">
+                <div class="add-panel-head">
+                    <div class="add-panel-icon">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                    </div>
+                    <div>
+                        <h2>Novo lançamento</h2>
+                        <p>Adicione uma receita ou despesa ao mês selecionado.</p>
+                    </div>
+                </div>
+
+                <div class="add-form">
+                    <div class="form-group">
+                        <label class="field-label" for="sel-categoria">Categoria</label>
+                        <select id="sel-categoria" class="select" onchange="toggleNovaCat()"></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="field-label" for="novo-nome">Descrição</label>
+                        <input type="text" id="novo-nome" class="input" placeholder="Ex.: Internet, salário, mercado">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="field-label" for="novo-valor">Valor</label>
+                        <input type="text" id="novo-valor" class="input" inputmode="numeric" placeholder="R$ 0,00" oninput="formatarMoeda(this)">
+                    </div>
+
+                    <button class="btn btn-success" onclick="adicionar()">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                        Adicionar
+                    </button>
+
+                    <div class="form-group new-category" id="nova-cat-group">
+                        <label class="field-label" for="input-nova-cat">Nome do novo bloco</label>
+                        <input type="text" id="input-nova-cat" class="input" placeholder="Ex.: Cartão, Casa, Investimentos">
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div class="mobile-bottom-bar">
+            <button class="btn btn-secondary" onclick="irParaNovoLancamento()">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Lançamento
+            </button>
+            <button class="btn btn-primary" id="btn-salvar-mobile" onclick="salvarNaNuvem()">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .8-7.9A6 6 0 0 0 6.5 8.2 4.8 4.8 0 0 0 7 18Z"/><path d="M12 11v6"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/></svg>
+                Salvar
+            </button>
+        </div>
+    </div>
+
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-box"><span class="spinner"></span><span id="loading-text">Carregando dados...</span></div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://tpblbledkcafbjndruha.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwYmxibGVka2NhZmJqbmRydWhhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODQxNTM1MCwiZXhwIjoyMDgzOTkxMzUwfQ.i4Soq1YctsZrowGcOrwPDOCs0mU9LVjDg_DQFgOJI5o';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let mesAtual = parseInt(localStorage.getItem('ultimoMes'));
+        if (Number.isNaN(mesAtual)) mesAtual = new Date().getMonth();
+        let anoSalvo = localStorage.getItem('ultimoAno') || String(new Date().getFullYear());
+        let toastTimer;
+
+        const nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+        const nomesMesesLongos = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        function svg(name, size = 'icon-sm') {
+            const icons = {
+                wallet: '<path d="M4 7.5h16v11H4z"/><path d="M15.5 13h4.5"/><circle cx="15.5" cy="13" r=".8" fill="currentColor" stroke="none"/>',
+                receipt: '<path d="M6 3h12v18l-2.2-1.5L13.9 21 12 19.5 10.1 21l-1.9-1.5L6 21V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+                trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m7 7 1 13h8l1-13"/><path d="M10 11v5M14 11v5"/>',
+                edit: '<path d="m4 16-.5 4.5L8 20l10-10-4-4L4 16Z"/><path d="m12.5 7.5 4 4"/>',
+                x: '<path d="m7 7 10 10M17 7 7 17"/>'
+            };
+            return `<svg class="icon ${size}" viewBox="0 0 24 24">${icons[name] || icons.receipt}</svg>`;
+        }
+
+        function montarAnos() {
+            const select = document.getElementById('select-ano');
+            const atual = new Date().getFullYear();
+            const inicio = Math.min(2024, parseInt(anoSalvo) || atual);
+            const fim = Math.max(atual + 4, parseInt(anoSalvo) || atual);
+            select.innerHTML = '';
+            for (let ano = inicio; ano <= fim; ano++) {
+                const opt = document.createElement('option');
+                opt.value = String(ano);
+                opt.textContent = String(ano);
+                select.appendChild(opt);
+            }
+            select.value = anoSalvo;
+            if (!select.value) select.value = String(atual);
+        }
+
+        function verificarSenha() {
+            const input = document.getElementById('input-senha');
+            if (input.value === 'Bgp1705') {
+                document.getElementById('tela-senha').style.display = 'none';
+                document.getElementById('app-principal').style.display = 'block';
+                document.getElementById('erro-senha').style.display = 'none';
+                montarAnos();
+                carregarDadosNuvem();
+            } else {
+                const erro = document.getElementById('erro-senha');
+                erro.style.display = 'flex';
+                input.focus();
+                input.select();
+            }
+        }
+
+        function toggleSenha() {
+            const input = document.getElementById('input-senha');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        document.getElementById('input-senha').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') verificarSenha();
+        });
+
+        function initBarra() {
+            const barra = document.getElementById('mes-barra');
+            barra.innerHTML = '';
+            nomesMeses.forEach((nome, i) => {
+                const btn = document.createElement('button');
+                btn.className = `month-btn ${i === mesAtual ? 'active' : ''}`;
+                btn.textContent = nome;
+                btn.setAttribute('aria-label', nomesMesesLongos[i]);
+                btn.onclick = () => {
+                    mesAtual = i;
+                    localStorage.setItem('ultimoMes', i);
+                    carregarDadosNuvem();
+                };
+                barra.appendChild(btn);
+            });
+            requestAnimationFrame(() => {
+                const ativo = barra.querySelector('.month-btn.active');
+                if (ativo) ativo.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            });
+        }
+
+        function setLoading(ativo, texto = 'Carregando dados...') {
+            document.getElementById('loading-text').textContent = texto;
+            document.getElementById('loading-screen').style.display = ativo ? 'flex' : 'none';
+        }
+
+        function showToast(mensagem, tipo = '') {
+            const toast = document.getElementById('toast');
+            clearTimeout(toastTimer);
+            toast.className = `toast ${tipo}`.trim();
+            toast.textContent = mensagem;
+            requestAnimationFrame(() => toast.classList.add('show'));
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2900);
+        }
+
+        function setSyncStatus(tipo = 'ok', texto = 'Dados atualizados') {
+            const dot = document.getElementById('status-dot');
+            const label = document.getElementById('status-text');
+            dot.className = 'status-dot';
+            if (tipo === 'dirty') dot.classList.add('dirty');
+            if (tipo === 'error') dot.classList.add('error');
+            label.textContent = texto;
+        }
+
+        function marcarAlterado() {
+            setSyncStatus('dirty', 'Alterações não salvas');
+        }
+
+        async function carregarDadosNuvem() {
+            initBarra();
+            const ano = document.getElementById('select-ano').value;
+            if (!ano) return;
+            anoSalvo = ano;
+            localStorage.setItem('ultimoAno', ano);
+            setLoading(true, `Carregando ${nomesMesesLongos[mesAtual]} de ${ano}...`);
+
+            try {
+                const { data, error } = await _supabase.from('registros').select('dados').eq('ano', ano).eq('mes', mesAtual).maybeSingle();
+                if (error) throw error;
+
+                document.getElementById('container-geral').innerHTML = '';
+                if (data && data.dados) {
+                    data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
+                } else {
+                    criarCard('RECEITAS', []);
+                    criarCard('DESPESAS FIXAS', []);
+                }
+                calcular();
+                atualizarDropdownCategorias();
+                setSyncStatus('ok', `${nomesMesesLongos[mesAtual]} carregado`);
+            } catch (error) {
+                setSyncStatus('error', 'Erro ao carregar');
+                showToast('Não foi possível carregar os dados.', 'error');
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function salvarNaNuvem() {
+            const ano = document.getElementById('select-ano').value;
+            const dados = [];
+            document.querySelectorAll('.card').forEach(c => {
+                const itens = [];
+                c.querySelectorAll('.row').forEach(r => {
+                    itens.push({
+                        desc: r.querySelector('.desc').textContent,
+                        val: r.querySelector('.val-box').value,
+                        pago: r.querySelector('.check-pagar').checked
+                    });
+                });
+                dados.push({ categoria: c.querySelector('.editable-title').value.trim(), itens });
+            });
+
+            const botoes = [document.getElementById('btn-salvar-topo'), document.getElementById('btn-salvar-mobile')].filter(Boolean);
+            botoes.forEach(btn => btn.disabled = true);
+            setLoading(true, 'Salvando e sincronizando...');
+
+            try {
+                const { error } = await _supabase.from('registros').upsert({ ano, mes: mesAtual, dados }, { onConflict: 'ano,mes' });
+                if (error) throw error;
+                setSyncStatus('ok', 'Tudo sincronizado');
+                showToast('Dados salvos com sucesso.', 'success');
+            } catch (error) {
+                setSyncStatus('error', 'Falha na sincronização');
+                showToast('Erro ao salvar. Tente novamente.', 'error');
+                console.error(error);
+            } finally {
+                botoes.forEach(btn => btn.disabled = false);
+                setLoading(false);
+            }
+        }
+
+        function atualizarDropdownCategorias() {
+            const sel = document.getElementById('sel-categoria');
+            const valorAtual = sel.value;
+            const titulos = new Set();
+
+            document.querySelectorAll('.editable-title').forEach(t => {
+                const nome = t.value.trim();
+                if (nome) titulos.add(nome.toUpperCase());
+            });
+
+            if (titulos.size === 0) {
+                titulos.add('RECEITAS');
+                titulos.add('DESPESAS');
+            }
+
+            sel.innerHTML = '';
+            titulos.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                sel.appendChild(opt);
+            });
+
+            const optNew = document.createElement('option');
+            optNew.value = 'NOVA_CAT';
+            optNew.textContent = '+ Criar novo bloco';
+            sel.appendChild(optNew);
+
+            if (titulos.has(valorAtual)) sel.value = valorAtual;
+            toggleNovaCat();
+        }
+
+        function criarLinhaItem(item, isReceita = false) {
+            const row = document.createElement('div');
+            row.className = `row ${item.pago ? 'pago' : ''}`;
+
+            const main = document.createElement('div');
+            main.className = 'row-main';
+
+            const checkWrap = document.createElement('label');
+            checkWrap.className = 'check-wrap';
+            checkWrap.title = isReceita ? 'Marcar como recebido' : 'Marcar como pago';
+
+            const check = document.createElement('input');
+            check.type = 'checkbox';
+            check.className = 'check-pagar';
+            check.checked = !!item.pago;
+            check.setAttribute('aria-label', isReceita ? 'Recebido' : 'Pago');
+            check.onchange = () => marcarPago(check);
+            checkWrap.appendChild(check);
+
+            const desc = document.createElement('span');
+            desc.className = 'desc';
+            desc.textContent = item.desc || '';
+            desc.title = item.desc || '';
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'icon-btn edit-item-btn';
+            editBtn.title = 'Editar descrição';
+            editBtn.setAttribute('aria-label', 'Editar descrição');
+            editBtn.innerHTML = svg('edit');
+            editBtn.onclick = () => editarNomeItem(editBtn);
+
+            main.append(checkWrap, desc, editBtn);
+
+            const valueWrap = document.createElement('div');
+            valueWrap.className = 'row-value';
+
+            const prefix = document.createElement('span');
+            prefix.className = 'currency-prefix';
+            prefix.textContent = 'R$';
+
+            const value = document.createElement('input');
+            value.type = 'text';
+            value.className = 'val-box';
+            value.inputMode = 'numeric';
+            value.value = item.val || '';
+            value.setAttribute('aria-label', `Valor de ${item.desc || 'lançamento'}`);
+            value.oninput = () => formatarMoeda(value);
+            value.onchange = marcarAlterado;
+
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'icon-btn danger delete-item-btn';
+            del.title = 'Excluir lançamento';
+            del.setAttribute('aria-label', 'Excluir lançamento');
+            del.innerHTML = svg('x');
+            del.onclick = () => {
+                row.remove();
+                atualizarCardMeta(row.closest ? row.closest('.card') : null);
+                calcular();
+                marcarAlterado();
+            };
+
+            valueWrap.append(prefix, value, del);
+            row.append(main, valueWrap);
+            return row;
+        }
+
+        function criarCard(tit, itens) {
+            const card = document.createElement('article');
+            const isRec = String(tit).toUpperCase().includes('RECEITA');
+            card.className = isRec ? 'card receita-card' : 'card';
+
+            const header = document.createElement('div');
+            header.className = 'card-header';
+
+            const icon = document.createElement('div');
+            icon.className = 'category-icon';
+            icon.innerHTML = svg(isRec ? 'wallet' : 'receipt', 'icon');
+
+            const meta = document.createElement('div');
+            meta.className = 'category-meta';
+
+            const title = document.createElement('input');
+            title.type = 'text';
+            title.className = 'editable-title';
+            title.value = tit || 'CATEGORIA';
+            title.setAttribute('aria-label', 'Nome da categoria');
+            title.oninput = () => atualizarIcone(title);
+            title.onchange = () => { atualizarDropdownCategorias(); marcarAlterado(); };
+
+            const subline = document.createElement('div');
+            subline.className = 'category-subline';
+            subline.textContent = `${itens.length} ${itens.length === 1 ? 'lançamento' : 'lançamentos'}`;
+
+            meta.append(title, subline);
+
+            const delCard = document.createElement('button');
+            delCard.type = 'button';
+            delCard.className = 'icon-btn danger';
+            delCard.title = 'Excluir categoria';
+            delCard.setAttribute('aria-label', 'Excluir categoria');
+            delCard.innerHTML = svg('trash');
+            delCard.onclick = () => {
+                if (confirm('Apagar este bloco e todos os lançamentos dele?')) {
+                    card.remove();
+                    calcular();
+                    atualizarDropdownCategorias();
+                    marcarAlterado();
+                }
+            };
+
+            header.append(icon, meta, delCard);
+
+            const rowsCont = document.createElement('div');
+            rowsCont.className = 'rows-container';
+            itens.forEach(item => rowsCont.appendChild(criarLinhaItem(item, isRec)));
+
+            const empty = document.createElement('div');
+            empty.className = 'empty-card';
+            empty.textContent = 'Nenhum lançamento nesta categoria.';
+            empty.style.display = itens.length ? 'none' : 'block';
+
+            const footer = document.createElement('div');
+            footer.className = 'card-footer';
+            const totalLabel = document.createElement('span');
+            totalLabel.textContent = 'Total da categoria';
+            const subtotal = document.createElement('strong');
+            subtotal.className = 'subtotal-bloco';
+            subtotal.textContent = 'R$ 0,00';
+            footer.append(totalLabel, subtotal);
+
+            card.append(header, rowsCont, empty, footer);
+            document.getElementById('container-geral').appendChild(card);
+        }
+
+        function atualizarCardMeta(card) {
+            if (!card || !card.querySelector) return;
+            const total = card.querySelectorAll('.row').length;
+            const subline = card.querySelector('.category-subline');
+            const empty = card.querySelector('.empty-card');
+            if (subline) subline.textContent = `${total} ${total === 1 ? 'lançamento' : 'lançamentos'}`;
+            if (empty) empty.style.display = total ? 'none' : 'block';
+        }
+
+        function editarNomeItem(btn) {
+            const row = btn.closest('.row');
+            const spanNome = row.querySelector('.desc');
+            const novoNome = prompt('Digite a nova descrição:', spanNome.textContent);
+            if (novoNome !== null && novoNome.trim() !== '') {
+                spanNome.textContent = novoNome.trim();
+                spanNome.title = novoNome.trim();
+                marcarAlterado();
+            }
+        }
+
+        function formatarMoeda(i) {
+            let v = i.value.replace(/\D/g, '');
+            v = (Number(v) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            i.value = v === '0,00' ? '' : v;
+            calcular();
+            marcarAlterado();
+        }
+
+        function marcarPago(cb) {
+            cb.closest('.row').classList.toggle('pago', cb.checked);
+            calcular();
+            marcarAlterado();
+        }
+
+        function valorNumerico(valor) {
+            return parseFloat(String(valor || '').replace(/\./g, '').replace(',', '.')) || 0;
+        }
+
+        function moeda(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function calcular() {
+            let receitas = 0;
+            let pago = 0;
+            let falta = 0;
+
+            document.querySelectorAll('.card').forEach(card => {
+                let totalBloco = 0;
+                card.querySelectorAll('.val-box').forEach(vBox => {
+                    const val = valorNumerico(vBox.value);
+                    totalBloco += val;
+                    if (card.classList.contains('receita-card')) {
+                        receitas += val;
+                    } else if (vBox.closest('.row').querySelector('.check-pagar').checked) {
+                        pago += val;
+                    } else {
+                        falta += val;
+                    }
+                });
+                const subtotal = card.querySelector('.subtotal-bloco');
+                if (subtotal) subtotal.textContent = moeda(totalBloco);
+                atualizarCardMeta(card);
+            });
+
+            const saldo = receitas - pago - falta;
+            document.getElementById('res-saldo').textContent = moeda(saldo);
+            document.getElementById('res-receitas').textContent = moeda(receitas);
+            document.getElementById('res-pago').textContent = moeda(pago);
+            document.getElementById('res-falta').textContent = moeda(falta);
+            document.getElementById('card-saldo').classList.toggle('negative', saldo < 0);
+        }
+
+        async function copiarMesAnterior() {
+            const ano = document.getElementById('select-ano').value;
+            const mBusca = mesAtual === 0 ? 11 : mesAtual - 1;
+            const aBusca = mesAtual === 0 ? String(parseInt(ano) - 1) : ano;
+            setLoading(true, `Buscando ${nomesMesesLongos[mBusca]} de ${aBusca}...`);
+
+            try {
+                const { data, error } = await _supabase.from('registros').select('dados').eq('ano', aBusca).eq('mes', mBusca).maybeSingle();
+                if (error) throw error;
+
+                if (data && data.dados) {
+                    if (confirm(`Copiar os dados de ${nomesMesesLongos[mBusca]} de ${aBusca}? Os lançamentos serão copiados como não pagos.`)) {
+                        document.getElementById('container-geral').innerHTML = '';
+                        data.dados.forEach(cat => {
+                            criarCard(cat.categoria, cat.itens.map(it => ({ ...it, pago: false })));
+                        });
+                        calcular();
+                        atualizarDropdownCategorias();
+                        marcarAlterado();
+                        showToast('Mês anterior copiado. Salve para sincronizar.', 'success');
+                    }
+                } else {
+                    showToast('Não há dados no mês anterior.');
+                }
+            } catch (error) {
+                showToast('Erro ao buscar o mês anterior.', 'error');
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function atualizarIcone(input) {
+            const card = input.closest('.card');
+            const isRec = input.value.toUpperCase().includes('RECEITA');
+            card.classList.toggle('receita-card', isRec);
+            const icon = card.querySelector('.category-icon');
+            icon.innerHTML = svg(isRec ? 'wallet' : 'receipt', 'icon');
+            card.querySelectorAll('.check-pagar').forEach(cb => cb.setAttribute('aria-label', isRec ? 'Recebido' : 'Pago'));
+            calcular();
+            marcarAlterado();
+        }
+
+        function toggleNovaCat() {
+            const nova = document.getElementById('sel-categoria').value === 'NOVA_CAT';
+            const group = document.getElementById('nova-cat-group');
+            group.style.display = nova ? 'block' : 'none';
+            if (nova) setTimeout(() => document.getElementById('input-nova-cat').focus(), 40);
+        }
+
+        function adicionar() {
+            const sel = document.getElementById('sel-categoria');
+            const isNova = sel.value === 'NOVA_CAT';
+            const novaCatInput = document.getElementById('input-nova-cat');
+            const nomeInput = document.getElementById('novo-nome');
+            const valorInput = document.getElementById('novo-valor');
+
+            const cat = (isNova ? novaCatInput.value : sel.value).trim().toUpperCase();
+            const nome = nomeInput.value.trim();
+            const valor = valorInput.value.trim();
+
+            if (!cat || !nome || !valor) {
+                showToast('Preencha categoria, descrição e valor.');
+                return;
+            }
+
+            let card = Array.from(document.querySelectorAll('.card')).find(c => c.querySelector('.editable-title').value.trim().toUpperCase() === cat);
+            if (!card) {
+                criarCard(cat, [{ desc: nome, val: valor, pago: false }]);
+                card = Array.from(document.querySelectorAll('.card')).find(c => c.querySelector('.editable-title').value.trim().toUpperCase() === cat);
+            } else {
+                const isReceita = card.classList.contains('receita-card');
+                card.querySelector('.rows-container').appendChild(criarLinhaItem({ desc: nome, val: valor, pago: false }, isReceita));
+            }
+
+            atualizarCardMeta(card);
+            calcular();
+            atualizarDropdownCategorias();
+            document.getElementById('sel-categoria').value = cat;
+            toggleNovaCat();
+
+            nomeInput.value = '';
+            valorInput.value = '';
+            novaCatInput.value = '';
+            marcarAlterado();
+            showToast('Lançamento adicionado.', 'success');
+            nomeInput.focus();
+        }
+
+        function irParaNovoLancamento() {
+            document.getElementById('novo-lancamento').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => document.getElementById('novo-nome').focus(), 350);
+        }
+
+        document.getElementById('novo-nome').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('novo-valor').focus();
+        });
+
+        document.getElementById('novo-valor').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') adicionar();
+        });
+    </script>
+</body>
+</html>
