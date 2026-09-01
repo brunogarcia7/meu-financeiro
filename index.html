@@ -485,15 +485,21 @@
         .section-heading p { margin: 4px 0 0; color: var(--slate-600); font-size: .78rem; }
 
         .blocks-container {
+            --masonry-row: 4px;
+            --masonry-gap: 14px;
             display: grid;
             grid-template-columns: repeat(12, minmax(0, 1fr));
-            gap: 14px;
+            grid-auto-rows: var(--masonry-row);
+            grid-auto-flow: row dense;
+            column-gap: var(--masonry-gap);
+            row-gap: 0;
             align-items: start;
         }
 
         .card {
             position: relative;
             grid-column: span 6;
+            align-self: start;
             min-width: 0;
             overflow: hidden;
             border: 1px solid var(--slate-200);
@@ -522,6 +528,28 @@
             box-shadow: var(--shadow-md) !important;
         }
         body.card-dragging { user-select: none; }
+
+        body.layout-editing .card.drop-before,
+        body.layout-editing .card.drop-after {
+            border-color: var(--blue-500);
+            box-shadow: 0 0 0 3px rgba(47,124,244,.12), var(--shadow-md);
+        }
+
+        body.layout-editing .card.drop-before::before,
+        body.layout-editing .card.drop-after::after {
+            content: "";
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            z-index: 5;
+            height: 3px;
+            border-radius: 999px;
+            background: var(--blue-500);
+            pointer-events: none;
+        }
+
+        body.layout-editing .card.drop-before::before { top: 5px; }
+        body.layout-editing .card.drop-after::after { bottom: 5px; }
 
         .card.receita-card { border-top: 3px solid var(--green-600); }
         .card:not(.receita-card) { border-top: 3px solid var(--navy-700); }
@@ -936,7 +964,17 @@
             .toolbar-left .btn { flex: 1; }
             .sync-status { display: none; }
             .section-heading { margin-top: 15px; }
-            .card, .card[data-size="sm"], .card[data-size="md"], .card[data-size="lg"], .card[data-size="xl"] { grid-column: span 12; border-radius: 16px; }
+            .blocks-container {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+            .card, .card[data-size="sm"], .card[data-size="md"], .card[data-size="lg"], .card[data-size="xl"] {
+                width: 100%;
+                grid-column: auto;
+                grid-row-end: auto !important;
+                border-radius: 16px;
+            }
             .card-header { padding: 14px 13px 11px; }
             .card-layout-actions { gap: 0; padding-right: 2px; }
             .layout-control-btn { width: 30px; height: 30px; }
@@ -1161,7 +1199,7 @@
 
             <div class="layout-hint" id="layout-hint">
                 <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M9 5h6M9 12h6M9 19h6"/><circle cx="6" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
-                <span>Arraste pelo puxador para mudar a ordem. No computador, use − e + para reduzir ou ampliar o card. No celular, os cards permanecem em largura total para facilitar a leitura.</span>
+                <span>Arraste os cards para mudar a ordem e use − / + para ajustar a largura. O painel agora encaixa automaticamente os cards nos espaços livres, colocando-os lado a lado ou logo abaixo quando houver espaço. No celular, eles continuam em uma coluna.</span>
             </div>
 
             <section id="container-geral" class="blocks-container" aria-live="polite"></section>
@@ -1234,7 +1272,11 @@
         let toastTimer;
         let layoutEditing = false;
         let dragState = null;
+        let masonryRaf = null;
         const cardSizes = ['sm', 'md', 'lg', 'xl'];
+        const masonryObserver = 'ResizeObserver' in window
+            ? new ResizeObserver(() => agendarMasonry())
+            : null;
 
         const nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
         const nomesMesesLongos = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -1282,6 +1324,46 @@
             showToast(next === 'dark' ? 'Modo escuro ativado.' : 'Modo claro ativado.', 'success');
         }
 
+        function atualizarMasonry() {
+            masonryRaf = null;
+            const container = document.getElementById('container-geral');
+            if (!container) return;
+
+            const cards = Array.from(container.querySelectorAll(':scope > .card'));
+            const mobile = window.matchMedia('(max-width: 680px)').matches;
+            if (mobile) {
+                cards.forEach(card => { card.style.gridRowEnd = ''; });
+                return;
+            }
+
+            const styles = getComputedStyle(container);
+            const row = parseFloat(styles.getPropertyValue('--masonry-row')) || 4;
+            const gap = parseFloat(styles.getPropertyValue('--masonry-gap')) || 14;
+
+            cards.forEach(card => {
+                card.style.gridRowEnd = 'auto';
+                const altura = card.getBoundingClientRect().height;
+                const span = Math.max(1, Math.ceil((altura + gap) / row));
+                card.style.gridRowEnd = `span ${span}`;
+            });
+        }
+
+        function agendarMasonry() {
+            if (masonryRaf) cancelAnimationFrame(masonryRaf);
+            masonryRaf = requestAnimationFrame(atualizarMasonry);
+        }
+
+        function observarCardMasonry(card) {
+            if (masonryObserver && card) masonryObserver.observe(card);
+            agendarMasonry();
+        }
+
+        function limparIndicadoresDrop() {
+            document.querySelectorAll('.card.drop-before, .card.drop-after').forEach(card => {
+                card.classList.remove('drop-before', 'drop-after');
+            });
+        }
+
         function toggleLayoutMode() {
             layoutEditing = !layoutEditing;
             document.body.classList.toggle('layout-editing', layoutEditing);
@@ -1290,11 +1372,13 @@
             if (btn) btn.setAttribute('aria-pressed', layoutEditing ? 'true' : 'false');
             if (label) label.textContent = layoutEditing ? 'Concluir organização' : 'Organizar cards';
             if (layoutEditing) {
-                showToast('Modo de organização ativado. Arraste ou redimensione os cards.');
+                showToast('Organização ativada. Arraste os cards; os espaços livres serão preenchidos automaticamente.');
             } else {
                 encerrarArrasteCard();
+                limparIndicadoresDrop();
                 showToast('Organização concluída. Salve para sincronizar.', 'success');
             }
+            agendarMasonry();
         }
 
         function tamanhoValido(valor) {
@@ -1328,6 +1412,7 @@
             if (proximo === indice) return;
             card.dataset.size = cardSizes[proximo];
             atualizarControlesTamanho(card);
+            agendarMasonry();
             marcarAlterado();
         }
 
@@ -1343,6 +1428,7 @@
                 if (!proximo) return;
                 parent.insertBefore(card, proximo.nextElementSibling);
             }
+            agendarMasonry();
             marcarAlterado();
         }
 
@@ -1367,15 +1453,25 @@
             const { card } = dragState;
             const el = document.elementFromPoint(event.clientX, event.clientY);
             const alvo = el && el.closest ? el.closest('.card') : null;
-            if (!alvo || alvo === card || alvo.parentElement !== card.parentElement) return;
+            if (!alvo || alvo === card || alvo.parentElement !== card.parentElement) {
+                limparIndicadoresDrop();
+                return;
+            }
 
             const rect = alvo.getBoundingClientRect();
             const cardRect = card.getBoundingClientRect();
             const sameRow = Math.abs((cardRect.top + cardRect.height / 2) - (rect.top + rect.height / 2)) < Math.max(70, Math.min(cardRect.height, rect.height) * .45);
-            const antes = sameRow ? event.clientX < rect.left + rect.width / 2 : event.clientY < rect.top + rect.height / 2;
+            const antes = sameRow
+                ? event.clientX < rect.left + rect.width / 2
+                : event.clientY < rect.top + rect.height / 2;
             const parent = alvo.parentElement;
+
+            limparIndicadoresDrop();
+            alvo.classList.add(antes ? 'drop-before' : 'drop-after');
+
             if (antes) parent.insertBefore(card, alvo);
             else parent.insertBefore(card, alvo.nextElementSibling);
+            agendarMasonry();
         }
 
         function encerrarArrasteCard(event) {
@@ -1385,14 +1481,17 @@
             try { handle.releasePointerCapture(pointerId); } catch (_) {}
             card.classList.remove('is-dragging');
             document.body.classList.remove('card-dragging');
+            limparIndicadoresDrop();
             const endIndex = card.parentElement ? Array.from(card.parentElement.children).indexOf(card) : startIndex;
             dragState = null;
+            agendarMasonry();
             if (endIndex !== startIndex) marcarAlterado();
         }
 
         document.addEventListener('pointermove', moverArrasteCard, { passive: false });
         document.addEventListener('pointerup', encerrarArrasteCard);
         document.addEventListener('pointercancel', encerrarArrasteCard);
+        window.addEventListener('resize', agendarMasonry, { passive: true });
 
         function montarAnos() {
             const select = document.getElementById('select-ano');
@@ -1504,6 +1603,7 @@
                 }
                 calcular();
                 atualizarDropdownCategorias();
+                agendarMasonry();
                 setSyncStatus('ok', `${nomesMesesLongos[mesAtual]} carregado`);
             } catch (error) {
                 setSyncStatus('error', 'Erro ao carregar');
@@ -1732,7 +1832,9 @@
             delCard.innerHTML = svg('trash');
             delCard.onclick = () => {
                 if (confirm('Apagar este bloco e todos os lançamentos dele?')) {
+                    if (masonryObserver) masonryObserver.unobserve(card);
                     card.remove();
+                    agendarMasonry();
                     calcular();
                     atualizarDropdownCategorias();
                     marcarAlterado();
@@ -1763,6 +1865,7 @@
             card.append(header, rowsCont, empty, footer);
             document.getElementById('container-geral').appendChild(card);
             atualizarControlesTamanho(card);
+            observarCardMasonry(card);
         }
 
         function atualizarCardMeta(card) {
@@ -1856,6 +1959,7 @@
                         });
                         calcular();
                         atualizarDropdownCategorias();
+                        agendarMasonry();
                         marcarAlterado();
                         showToast('Mês anterior copiado. Salve para sincronizar.', 'success');
                     }

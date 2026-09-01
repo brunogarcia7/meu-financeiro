@@ -1,0 +1,37 @@
+MEU FINANCEIRO - VERSAO PROFISSIONAL V3
+
+Novidades desta versao:
+- Novo layout inteligente tipo masonry para os cards.
+- Cards menores sobem automaticamente para preencher espacos vazios ao lado de cards mais altos.
+- E possivel manter cards lado a lado ou logo abaixo, aproveitando melhor a largura da tela.
+- O modo "Organizar cards" continua permitindo arrastar e mudar a ordem.
+- No computador, os botoes - e + continuam alterando a largura dos cards.
+- Indicador visual mostra onde o card sera inserido durante o arraste.
+- Modo escuro mantido, com preferencia salva no navegador.
+- No celular, os cards continuam em uma unica coluna para facilitar a leitura e o toque.
+- Ordem e tamanho continuam sendo sincronizados ao clicar em Salvar.
+
+COMO ORGANIZAR OS CARDS
+1. Clique em "Organizar cards".
+2. Arraste um card pelo icone de pontos.
+3. Solte proximo ao card onde deseja posiciona-lo.
+4. Use - e + para ajustar a largura no computador.
+5. O painel encaixa automaticamente os cards nos espacos livres, evitando grandes areas vazias.
+6. Clique em "Concluir organizacao" e depois em "Salvar" para sincronizar.
+
+EXEMPLO
+Se houver um card muito alto no meio e cards menores nas laterais, os proximos cards pequenos poderao subir e ocupar os espacos vazios abaixo dos cards laterais, em vez de esperar o card alto terminar.
+
+MODO ESCURO
+- Use o botao com lua/sol no canto superior direito.
+- A preferencia fica salva neste navegador.
+
+IMPORTANTE - SEGURANCA DO SUPABASE
+O projeto recebido utiliza uma chave service_role diretamente no JavaScript do navegador.
+Essa chave nao deve ficar exposta em um site publicado, pois possui privilegios elevados.
+Ela foi mantida nesta versao apenas para preservar o funcionamento atual.
+Recomendacao: trocar por Supabase Auth + chave anon/publishable e configurar RLS (Row Level Security).
+
+Como abrir:
+1. Abra index.html no navegador.
+2. Em hospedagem, use index.html como pagina inicial.
