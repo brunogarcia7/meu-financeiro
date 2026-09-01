@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0f2344">
+    <meta name="theme-color" id="theme-color-meta" content="#0f2344">
+    <script>
+        (() => {
+            try {
+                const saved = localStorage.getItem('financeiroTema');
+                const preferDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if ((saved && saved === 'dark') || (!saved && preferDark)) document.documentElement.dataset.theme = 'dark';
+            } catch (_) {}
+        })();
+    </script>
     <title>Meu Financeiro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -251,6 +260,29 @@
         .app-title strong { display: block; font-size: 1.05rem; letter-spacing: -.02em; }
         .app-title span { display: block; margin-top: 2px; color: rgba(255,255,255,.62); font-size: .76rem; white-space: nowrap; }
 
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .theme-toggle {
+            width: 42px;
+            height: 42px;
+            display: inline-grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 12px;
+            color: #fff;
+            background: rgba(255,255,255,.08);
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: background .18s ease, transform .18s ease, border-color .18s ease;
+        }
+
+        .theme-toggle:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22); transform: translateY(-1px); }
+
         .period-control {
             display: flex;
             align-items: center;
@@ -454,12 +486,15 @@
 
         .blocks-container {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(12, minmax(0, 1fr));
             gap: 14px;
             align-items: start;
         }
 
         .card {
+            position: relative;
+            grid-column: span 6;
+            min-width: 0;
             overflow: hidden;
             border: 1px solid var(--slate-200);
             border-radius: var(--radius-lg);
@@ -468,7 +503,26 @@
             transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
         }
 
+        .card[data-size="sm"] { grid-column: span 4; }
+        .card[data-size="md"] { grid-column: span 6; }
+        .card[data-size="lg"] { grid-column: span 8; }
+        .card[data-size="xl"] { grid-column: span 12; }
+
         .card:hover { border-color: #d9e1eb; box-shadow: var(--shadow-md); transform: translateY(-1px); }
+        body.layout-editing .card {
+            border-style: dashed;
+            border-color: #9bb4d3;
+            box-shadow: 0 0 0 2px rgba(47,124,244,.05), var(--shadow-sm);
+        }
+        body.layout-editing .card:hover { transform: none; }
+        .card.is-dragging {
+            z-index: 20;
+            opacity: .62;
+            transform: scale(.99) !important;
+            box-shadow: var(--shadow-md) !important;
+        }
+        body.card-dragging { user-select: none; }
+
         .card.receita-card { border-top: 3px solid var(--green-600); }
         .card:not(.receita-card) { border-top: 3px solid var(--navy-700); }
 
@@ -531,7 +585,54 @@
         }
 
         .icon-btn:hover { color: var(--slate-950); background: var(--slate-100); }
+        .icon-btn:disabled { opacity: .35; cursor: not-allowed; }
         .icon-btn.danger:hover { color: var(--red-700); background: var(--red-100); }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex: 0 0 auto;
+        }
+
+        .card-layout-actions {
+            display: none;
+            align-items: center;
+            gap: 2px;
+            padding-right: 4px;
+            margin-right: 2px;
+            border-right: 1px solid var(--slate-200);
+        }
+
+        body.layout-editing .card-layout-actions { display: flex; }
+
+        .drag-handle {
+            cursor: grab;
+            touch-action: none;
+        }
+
+        .drag-handle:active { cursor: grabbing; }
+
+        .layout-control-btn {
+            width: 32px;
+            height: 32px;
+        }
+
+        .layout-hint {
+            display: none;
+            align-items: center;
+            gap: 9px;
+            margin: -2px 0 13px;
+            padding: 10px 12px;
+            border: 1px dashed #a8bfdd;
+            border-radius: 12px;
+            color: var(--slate-700);
+            background: #f4f8fd;
+            font-size: .76rem;
+            font-weight: 700;
+        }
+
+        body.layout-editing .layout-hint { display: flex; }
 
         .rows-container {
             border-top: 1px solid var(--slate-200);
@@ -806,7 +907,9 @@
 
         @media (max-width: 900px) {
             .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .blocks-container { grid-template-columns: 1fr; }
+            .blocks-container { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+            .card[data-size="sm"], .card[data-size="md"] { grid-column: span 6; }
+            .card[data-size="lg"], .card[data-size="xl"] { grid-column: span 12; }
             .add-form { grid-template-columns: 1fr 1fr; }
             .add-form .form-group:nth-of-type(3) { grid-column: 1; }
             .add-form .btn { grid-column: 2; }
@@ -820,6 +923,8 @@
             .app-title span { display: none; }
             .period-control { padding-left: 7px; }
             .period-control span { display: none; }
+            .topbar-actions { gap: 7px; }
+            .theme-toggle { width: 38px; height: 38px; border-radius: 11px; }
             #select-ano { min-width: 74px; padding: 7px 24px 7px 9px; }
             .summary-grid { gap: 8px; }
             .summary-card { padding: 12px 12px; border-radius: 14px; }
@@ -831,8 +936,12 @@
             .toolbar-left .btn { flex: 1; }
             .sync-status { display: none; }
             .section-heading { margin-top: 15px; }
-            .card { border-radius: 16px; }
+            .card, .card[data-size="sm"], .card[data-size="md"], .card[data-size="lg"], .card[data-size="xl"] { grid-column: span 12; border-radius: 16px; }
             .card-header { padding: 14px 13px 11px; }
+            .card-layout-actions { gap: 0; padding-right: 2px; }
+            .layout-control-btn { width: 30px; height: 30px; }
+            .card-layout-actions .size-control { display: none; }
+            .layout-hint { align-items: flex-start; line-height: 1.45; }
             .category-icon { width: 35px; height: 35px; border-radius: 11px; }
             .row { padding: 10px 11px; gap: 7px; min-height: 56px; }
             .row-main { gap: 8px; }
@@ -856,6 +965,70 @@
             .month-btn { min-width: 62px; }
             .desc { max-width: 35vw; }
         }
+
+        /* MODO ESCURO */
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --slate-950: #f4f7fb;
+            --slate-800: #dce5f0;
+            --slate-700: #c3cfdd;
+            --slate-600: #9daabd;
+            --slate-500: #7f8da1;
+            --slate-300: #40516a;
+            --slate-200: #293a50;
+            --slate-100: #19283b;
+            --surface: #101c2c;
+            --canvas: #07111f;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12);
+            --shadow-md: 0 10px 28px rgba(0,0,0,.28);
+            --shadow-lg: 0 24px 52px rgba(0,0,0,.40);
+        }
+
+        html[data-theme="dark"] body { background: var(--canvas); }
+        html[data-theme="dark"] .login-box {
+            border-color: rgba(121,151,190,.22);
+            background: rgba(15,27,44,.97);
+            color: var(--slate-950);
+        }
+        html[data-theme="dark"] #select-ano option { color: #e8eef7; background: #132238; }
+        html[data-theme="dark"] .month-btn { background: var(--surface); border-color: var(--slate-200); }
+        html[data-theme="dark"] .month-btn:hover { color: #dce9fb; border-color: #436081; }
+        html[data-theme="dark"] .month-btn.active { color: #fff; border-color: #2f6ebc; background: #174a83; }
+        html[data-theme="dark"] .btn-secondary { background: var(--surface); border-color: var(--slate-200); }
+        html[data-theme="dark"] .btn-secondary:hover { color: #e4efff; border-color: #46617f; background: #15243a; }
+        html[data-theme="dark"] .card { background: var(--surface); border-color: var(--slate-200); }
+        html[data-theme="dark"] .card:hover { border-color: #3b506b; }
+        html[data-theme="dark"] body.layout-editing .card { border-color: #4d6f99; box-shadow: 0 0 0 2px rgba(79,141,222,.08), var(--shadow-sm); }
+        html[data-theme="dark"] .category-icon { color: #92baf0; background: #172d49; }
+        html[data-theme="dark"] .receita-card .category-icon { color: #78d4a2; background: #112f27; }
+        html[data-theme="dark"] .rows-container,
+        html[data-theme="dark"] .empty-card,
+        html[data-theme="dark"] .card-footer,
+        html[data-theme="dark"] .add-panel-head { border-color: var(--slate-200); }
+        html[data-theme="dark"] .row { border-color: #1d2c40; }
+        html[data-theme="dark"] .row:hover { background: #132135; }
+        html[data-theme="dark"] .row.pago { background: #10291f; }
+        html[data-theme="dark"] .check-pagar { background: #0c1726; border-color: #53627a; }
+        html[data-theme="dark"] .check-pagar:checked { background: var(--green-600); border-color: var(--green-600); }
+        html[data-theme="dark"] .val-box:hover { background: #19283b; }
+        html[data-theme="dark"] .val-box:focus { border-color: #426da5; background: #102039; box-shadow: 0 0 0 3px rgba(47,124,244,.12); }
+        html[data-theme="dark"] .card-footer { background: #0d1827; }
+        html[data-theme="dark"] .add-panel { background: var(--surface); border-color: var(--slate-200); }
+        html[data-theme="dark"] .add-panel-head { background: linear-gradient(180deg, #101c2c, #0d1827); }
+        html[data-theme="dark"] .add-panel-icon { color: #92baf0; background: #172d49; }
+        html[data-theme="dark"] .input,
+        html[data-theme="dark"] .select { color: var(--slate-950); background: #0c1726; border-color: var(--slate-300); }
+        html[data-theme="dark"] .input::placeholder { color: #74849a; }
+        html[data-theme="dark"] .input:focus,
+        html[data-theme="dark"] .select:focus { border-color: #4a74a8; box-shadow: 0 0 0 4px rgba(47,124,244,.12); }
+        html[data-theme="dark"] .mobile-bottom-bar { border-color: rgba(64,81,106,.82); background: rgba(12,23,38,.94); box-shadow: 0 16px 42px rgba(0,0,0,.38); }
+        html[data-theme="dark"] .loading-screen { background: rgba(3,9,17,.70); }
+        html[data-theme="dark"] .loading-box { background: #101c2c; border-color: var(--slate-200); }
+        html[data-theme="dark"] .spinner { border-color: #304058; border-top-color: #72a6e8; }
+        html[data-theme="dark"] .layout-hint { color: #c3cfdd; border-color: #416286; background: #0e1d30; }
+        html[data-theme="dark"] .password-toggle:hover,
+        html[data-theme="dark"] .icon-btn:hover { background: #19283b; }
+        html[data-theme="dark"] .icon-btn.danger:hover { color: #ff9d95; background: rgba(180,35,24,.18); }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: .001ms !important; }
@@ -907,9 +1080,14 @@
                             <span>Visão geral das suas finanças</span>
                         </div>
                     </div>
-                    <div class="period-control">
-                        <span>Ano</span>
-                        <select id="select-ano" onchange="carregarDadosNuvem()" aria-label="Selecionar ano"></select>
+                    <div class="topbar-actions">
+                        <button class="theme-toggle" id="theme-toggle" type="button" onclick="toggleTema()" aria-label="Ativar modo escuro" title="Alternar modo claro/escuro">
+                            <svg id="theme-icon" class="icon" viewBox="0 0 24 24"><path d="M20 15.5A8.5 8.5 0 1 1 8.5 4 6.5 6.5 0 0 0 20 15.5Z"/></svg>
+                        </button>
+                        <div class="period-control">
+                            <span>Ano</span>
+                            <select id="select-ano" onchange="carregarDadosNuvem()" aria-label="Selecionar ano"></select>
+                        </div>
                     </div>
                 </div>
 
@@ -957,6 +1135,10 @@
                         <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="8" y="8" width="10" height="10" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
                         Copiar mês anterior
                     </button>
+                    <button class="btn btn-secondary" id="btn-layout" type="button" onclick="toggleLayoutMode()" aria-pressed="false">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><path d="M8 5v4M16 10v4M10 15v4"/></svg>
+                        <span id="layout-button-label">Organizar cards</span>
+                    </button>
                 </div>
                 <div class="toolbar-right">
                     <div class="sync-status" id="sync-status">
@@ -975,6 +1157,11 @@
                     <h2>Movimentações do mês</h2>
                     <p>Organize receitas e despesas por categoria.</p>
                 </div>
+            </div>
+
+            <div class="layout-hint" id="layout-hint">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M9 5h6M9 12h6M9 19h6"/><circle cx="6" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+                <span>Arraste pelo puxador para mudar a ordem. No computador, use − e + para reduzir ou ampliar o card. No celular, os cards permanecem em largura total para facilitar a leitura.</span>
             </div>
 
             <section id="container-geral" class="blocks-container" aria-live="polite"></section>
@@ -1045,6 +1232,9 @@
         if (Number.isNaN(mesAtual)) mesAtual = new Date().getMonth();
         let anoSalvo = localStorage.getItem('ultimoAno') || String(new Date().getFullYear());
         let toastTimer;
+        let layoutEditing = false;
+        let dragState = null;
+        const cardSizes = ['sm', 'md', 'lg', 'xl'];
 
         const nomesMeses = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
         const nomesMesesLongos = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -1055,10 +1245,154 @@
                 receipt: '<path d="M6 3h12v18l-2.2-1.5L13.9 21 12 19.5 10.1 21l-1.9-1.5L6 21V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/>',
                 trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m7 7 1 13h8l1-13"/><path d="M10 11v5M14 11v5"/>',
                 edit: '<path d="m4 16-.5 4.5L8 20l10-10-4-4L4 16Z"/><path d="m12.5 7.5 4 4"/>',
-                x: '<path d="m7 7 10 10M17 7 7 17"/>'
+                x: '<path d="m7 7 10 10M17 7 7 17"/>',
+                grip: '<circle cx="9" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="17" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="17" r="1" fill="currentColor" stroke="none"/>',
+                minus: '<path d="M6 12h12"/>',
+                plus: '<path d="M12 6v12M6 12h12"/>',
+                up: '<path d="m7 14 5-5 5 5"/>',
+                down: '<path d="m7 10 5 5 5-5"/>'
             };
             return `<svg class="icon ${size}" viewBox="0 0 24 24">${icons[name] || icons.receipt}</svg>`;
         }
+
+        function atualizarBotaoTema() {
+            const dark = document.documentElement.dataset.theme === 'dark';
+            const btn = document.getElementById('theme-toggle');
+            const icon = document.getElementById('theme-icon');
+            const meta = document.getElementById('theme-color-meta');
+            if (btn) {
+                btn.setAttribute('aria-label', dark ? 'Ativar modo claro' : 'Ativar modo escuro');
+                btn.title = dark ? 'Ativar modo claro' : 'Ativar modo escuro';
+            }
+            if (icon) {
+                icon.innerHTML = dark
+                    ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/>'
+                    : '<path d="M20 15.5A8.5 8.5 0 1 1 8.5 4 6.5 6.5 0 0 0 20 15.5Z"/>';
+            }
+            if (meta) meta.setAttribute('content', dark ? '#07111f' : '#0f2344');
+        }
+
+        function toggleTema() {
+            const dark = document.documentElement.dataset.theme === 'dark';
+            const next = dark ? 'light' : 'dark';
+            if (next === 'dark') document.documentElement.dataset.theme = 'dark';
+            else delete document.documentElement.dataset.theme;
+            localStorage.setItem('financeiroTema', next);
+            atualizarBotaoTema();
+            showToast(next === 'dark' ? 'Modo escuro ativado.' : 'Modo claro ativado.', 'success');
+        }
+
+        function toggleLayoutMode() {
+            layoutEditing = !layoutEditing;
+            document.body.classList.toggle('layout-editing', layoutEditing);
+            const btn = document.getElementById('btn-layout');
+            const label = document.getElementById('layout-button-label');
+            if (btn) btn.setAttribute('aria-pressed', layoutEditing ? 'true' : 'false');
+            if (label) label.textContent = layoutEditing ? 'Concluir organização' : 'Organizar cards';
+            if (layoutEditing) {
+                showToast('Modo de organização ativado. Arraste ou redimensione os cards.');
+            } else {
+                encerrarArrasteCard();
+                showToast('Organização concluída. Salve para sincronizar.', 'success');
+            }
+        }
+
+        function tamanhoValido(valor) {
+            return cardSizes.includes(valor) ? valor : 'md';
+        }
+
+        function atualizarControlesTamanho(card) {
+            if (!card) return;
+            const size = tamanhoValido(card.dataset.size);
+            card.dataset.size = size;
+            const indice = cardSizes.indexOf(size);
+            const menor = card.querySelector('[data-card-size="down"]');
+            const maior = card.querySelector('[data-card-size="up"]');
+            if (menor) {
+                menor.disabled = indice === 0;
+                menor.setAttribute('aria-label', indice === 0 ? 'Card já está no menor tamanho' : 'Diminuir largura do card');
+                menor.title = indice === 0 ? 'Menor tamanho' : 'Diminuir card';
+            }
+            if (maior) {
+                maior.disabled = indice === cardSizes.length - 1;
+                maior.setAttribute('aria-label', indice === cardSizes.length - 1 ? 'Card já está no maior tamanho' : 'Aumentar largura do card');
+                maior.title = indice === cardSizes.length - 1 ? 'Maior tamanho' : 'Aumentar card';
+            }
+        }
+
+        function alterarTamanhoCard(card, delta) {
+            if (!card) return;
+            const atual = tamanhoValido(card.dataset.size);
+            const indice = cardSizes.indexOf(atual);
+            const proximo = Math.max(0, Math.min(cardSizes.length - 1, indice + delta));
+            if (proximo === indice) return;
+            card.dataset.size = cardSizes[proximo];
+            atualizarControlesTamanho(card);
+            marcarAlterado();
+        }
+
+        function moverCard(card, direcao) {
+            if (!card || !card.parentElement) return;
+            const parent = card.parentElement;
+            if (direcao < 0) {
+                const anterior = card.previousElementSibling;
+                if (!anterior) return;
+                parent.insertBefore(card, anterior);
+            } else {
+                const proximo = card.nextElementSibling;
+                if (!proximo) return;
+                parent.insertBefore(card, proximo.nextElementSibling);
+            }
+            marcarAlterado();
+        }
+
+        function iniciarArrasteCard(event, card) {
+            if (!layoutEditing || !card) return;
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            event.preventDefault();
+            dragState = {
+                card,
+                pointerId: event.pointerId,
+                handle: event.currentTarget,
+                startIndex: Array.from(card.parentElement.children).indexOf(card)
+            };
+            card.classList.add('is-dragging');
+            document.body.classList.add('card-dragging');
+            try { event.currentTarget.setPointerCapture(event.pointerId); } catch (_) {}
+        }
+
+        function moverArrasteCard(event) {
+            if (!dragState || event.pointerId !== dragState.pointerId) return;
+            event.preventDefault();
+            const { card } = dragState;
+            const el = document.elementFromPoint(event.clientX, event.clientY);
+            const alvo = el && el.closest ? el.closest('.card') : null;
+            if (!alvo || alvo === card || alvo.parentElement !== card.parentElement) return;
+
+            const rect = alvo.getBoundingClientRect();
+            const cardRect = card.getBoundingClientRect();
+            const sameRow = Math.abs((cardRect.top + cardRect.height / 2) - (rect.top + rect.height / 2)) < Math.max(70, Math.min(cardRect.height, rect.height) * .45);
+            const antes = sameRow ? event.clientX < rect.left + rect.width / 2 : event.clientY < rect.top + rect.height / 2;
+            const parent = alvo.parentElement;
+            if (antes) parent.insertBefore(card, alvo);
+            else parent.insertBefore(card, alvo.nextElementSibling);
+        }
+
+        function encerrarArrasteCard(event) {
+            if (!dragState) return;
+            if (event && typeof event.pointerId === 'number' && event.pointerId !== dragState.pointerId) return;
+            const { card, handle, pointerId, startIndex } = dragState;
+            try { handle.releasePointerCapture(pointerId); } catch (_) {}
+            card.classList.remove('is-dragging');
+            document.body.classList.remove('card-dragging');
+            const endIndex = card.parentElement ? Array.from(card.parentElement.children).indexOf(card) : startIndex;
+            dragState = null;
+            if (endIndex !== startIndex) marcarAlterado();
+        }
+
+        document.addEventListener('pointermove', moverArrasteCard, { passive: false });
+        document.addEventListener('pointerup', encerrarArrasteCard);
+        document.addEventListener('pointercancel', encerrarArrasteCard);
 
         function montarAnos() {
             const select = document.getElementById('select-ano');
@@ -1163,7 +1497,7 @@
 
                 document.getElementById('container-geral').innerHTML = '';
                 if (data && data.dados) {
-                    data.dados.forEach(cat => criarCard(cat.categoria, cat.itens));
+                    data.dados.forEach(cat => criarCard(cat.categoria, cat.itens, cat.layout && cat.layout.size ? cat.layout.size : 'md'));
                 } else {
                     criarCard('RECEITAS', []);
                     criarCard('DESPESAS FIXAS', []);
@@ -1192,7 +1526,7 @@
                         pago: r.querySelector('.check-pagar').checked
                     });
                 });
-                dados.push({ categoria: c.querySelector('.editable-title').value.trim(), itens });
+                dados.push({ categoria: c.querySelector('.editable-title').value.trim(), itens, layout: { size: tamanhoValido(c.dataset.size) } });
             });
 
             const botoes = [document.getElementById('btn-salvar-topo'), document.getElementById('btn-salvar-mobile')].filter(Boolean);
@@ -1314,10 +1648,11 @@
             return row;
         }
 
-        function criarCard(tit, itens) {
+        function criarCard(tit, itens, tamanho = 'md') {
             const card = document.createElement('article');
             const isRec = String(tit).toUpperCase().includes('RECEITA');
             card.className = isRec ? 'card receita-card' : 'card';
+            card.dataset.size = tamanhoValido(tamanho);
 
             const header = document.createElement('div');
             header.className = 'card-header';
@@ -1343,6 +1678,52 @@
 
             meta.append(title, subline);
 
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+
+            const layoutActions = document.createElement('div');
+            layoutActions.className = 'card-layout-actions';
+
+            const dragHandle = document.createElement('button');
+            dragHandle.type = 'button';
+            dragHandle.className = 'icon-btn layout-control-btn drag-handle';
+            dragHandle.title = 'Arrastar card';
+            dragHandle.setAttribute('aria-label', 'Arrastar card para reorganizar');
+            dragHandle.innerHTML = svg('grip');
+            dragHandle.addEventListener('pointerdown', (event) => iniciarArrasteCard(event, card));
+
+            const moveUp = document.createElement('button');
+            moveUp.type = 'button';
+            moveUp.className = 'icon-btn layout-control-btn';
+            moveUp.title = 'Mover card para cima';
+            moveUp.setAttribute('aria-label', 'Mover card para cima');
+            moveUp.innerHTML = svg('up');
+            moveUp.onclick = () => moverCard(card, -1);
+
+            const moveDown = document.createElement('button');
+            moveDown.type = 'button';
+            moveDown.className = 'icon-btn layout-control-btn';
+            moveDown.title = 'Mover card para baixo';
+            moveDown.setAttribute('aria-label', 'Mover card para baixo');
+            moveDown.innerHTML = svg('down');
+            moveDown.onclick = () => moverCard(card, 1);
+
+            const shrink = document.createElement('button');
+            shrink.type = 'button';
+            shrink.className = 'icon-btn layout-control-btn size-control';
+            shrink.dataset.cardSize = 'down';
+            shrink.innerHTML = svg('minus');
+            shrink.onclick = () => alterarTamanhoCard(card, -1);
+
+            const grow = document.createElement('button');
+            grow.type = 'button';
+            grow.className = 'icon-btn layout-control-btn size-control';
+            grow.dataset.cardSize = 'up';
+            grow.innerHTML = svg('plus');
+            grow.onclick = () => alterarTamanhoCard(card, 1);
+
+            layoutActions.append(dragHandle, moveUp, moveDown, shrink, grow);
+
             const delCard = document.createElement('button');
             delCard.type = 'button';
             delCard.className = 'icon-btn danger';
@@ -1358,7 +1739,8 @@
                 }
             };
 
-            header.append(icon, meta, delCard);
+            actions.append(layoutActions, delCard);
+            header.append(icon, meta, actions);
 
             const rowsCont = document.createElement('div');
             rowsCont.className = 'rows-container';
@@ -1380,6 +1762,7 @@
 
             card.append(header, rowsCont, empty, footer);
             document.getElementById('container-geral').appendChild(card);
+            atualizarControlesTamanho(card);
         }
 
         function atualizarCardMeta(card) {
@@ -1469,7 +1852,7 @@
                     if (confirm(`Copiar os dados de ${nomesMesesLongos[mBusca]} de ${aBusca}? Os lançamentos serão copiados como não pagos.`)) {
                         document.getElementById('container-geral').innerHTML = '';
                         data.dados.forEach(cat => {
-                            criarCard(cat.categoria, cat.itens.map(it => ({ ...it, pago: false })));
+                            criarCard(cat.categoria, cat.itens.map(it => ({ ...it, pago: false })), cat.layout && cat.layout.size ? cat.layout.size : 'md');
                         });
                         calcular();
                         atualizarDropdownCategorias();
@@ -1556,6 +1939,8 @@
         document.getElementById('novo-valor').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') adicionar();
         });
+
+        atualizarBotaoTema();
     </script>
 </body>
 </html>
